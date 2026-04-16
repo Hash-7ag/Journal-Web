@@ -1,7 +1,3 @@
-# Tools:
+# Web Journal
 
-## Vite
-
-## React + ReactRouterDOM
-
-## TailwindCSS + DasyUI
+## Tools: Vite + React + ReactRouterDOM + TailwindCSS + DasyUI
