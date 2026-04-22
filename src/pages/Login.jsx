@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { capitalize } from '../scripts/capitalize.js'
 import { api } from '../scripts/api.js';
+import { setUserData } from '../store/userStore.js';
 
 function Login() {
 
@@ -18,6 +19,7 @@ function Login() {
       type: ''
    })
 
+   const navigate = useNavigate();
    const location = useLocation();
    const role = location.state?.role
 
@@ -35,10 +37,12 @@ function Login() {
 
          const res = await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
 
+         setUserData(formValues.username, role);   // username из формы, role из location.state
          setMsg({
             msg: 'Uğurla daxil oldunuz!',
             type: 'success'
          })
+         navigate('/changePassword');
       } catch (error) {
          setMsg({
             msg: 'Uğursuz giriş',
@@ -68,7 +72,16 @@ function Login() {
             <input name='username' value={formValues.username} className="p-3 input" type="text" placeholder="Username" onChange={(e) => changeValues(e.target)} />
 
             <label className="label">Password</label>
-            <input name='password' value={formValues.password} className="p-3 input" type="password" placeholder="Password" onChange={(e) => changeValues(e.target)} />
+            <input type="password" className="p-3 input validator" required placeholder="Password" minLength="8"
+               pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+               title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
+               name='password' value={formValues.password} onChange={(e) => changeValues(e.target)} />
+            {/* <p className="validator-hint">
+               Must be more than 8 characters, including
+               <br />At least one number
+               <br />At least one lowercase letter
+               <br />At least one uppercase letter
+            </p> */}
 
             <button className="btn btn-neutral mt-4" onClick={login}>{loading ? 'Daxil olunur' : 'Daxil ol'}</button>
          </fieldset>
