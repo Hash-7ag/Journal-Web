@@ -9,20 +9,16 @@ function ChangePassword() {
    const [passwordMatchError, setPasswordMatchError] = useState(false);
    const [msg, setMsg] = useState({ msg: '', type: '' });
 
-   // Инициализируем форму с пустыми полями
    const [formValues, setFormValues] = useState({
       username: '',
       oldPassword: '',
       newPassword: ''
    });
 
-   // После монтирования получаем данные пользователя и обновляем username
    useEffect(() => {
       const userData = getUserData();
       if (userData.username && userData.role) {
          setFormValues(prev => ({ ...prev, username: userData.username }));
-         // Сохраняем role в отдельный state, если нужно
-         // setRole(userData.role);
       }
    }, []);
 
@@ -57,13 +53,13 @@ function ChangePassword() {
             return;
          }
 
-         const userData = getUserData(); // получаем role
+         const userData = getUserData();
          const role = userData.role;
          if (!role) throw new Error('Role not found');
 
          const res = await api.post(`/${role}/changePasswordAs${capitalize(role)}`, formValues);
          setMsg({ msg: 'Uğurla daxil oldunuz!', type: 'success' });
-         // Очищаем только пароли, username оставляем
+
          setFormValues(prev => ({ ...prev, oldPassword: '', newPassword: '' }));
          setConfirmPassword('');
          setPasswordMatchError(false);
@@ -87,7 +83,7 @@ function ChangePassword() {
                name="username"
                value={formValues.username}
                onChange={handleFormChange}
-               readOnly  // опционально: если не хотите, чтобы пользователь менял username
+               readOnly
             />
 
             <label className="label">Köhnə password</label>
