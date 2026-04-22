@@ -37,7 +37,7 @@ function Login() {
 
          const res = await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
 
-         setUserData(formValues.username, role);   // username из формы, role из location.state
+         setUserData(formValues.username, role);
          setMsg({
             msg: 'Uğurla daxil oldunuz!',
             type: 'success'
