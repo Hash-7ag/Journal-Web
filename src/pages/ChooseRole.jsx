@@ -1,12 +1,14 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { setUserData } from '../store/userStore.js';
 
 function ChooseRole() {
 
    const navigate = useNavigate()
 
    const moveToLogin = (role) => {
-      navigate('/login', { state: { role } })
+      setUserData(null, role);
+      navigate('/login')
    }
 
    return (

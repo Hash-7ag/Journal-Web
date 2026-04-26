@@ -1,13 +1,22 @@
-import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { capitalize } from '../scripts/capitalize.js'
 import { api } from '../scripts/api.js';
-import { setUserData } from '../store/userStore.js';
+import { setUserData, getUserData } from '../store/userStore.js';
 
 function Login() {
+   const navigate = useNavigate();
+
+   const userData = getUserData();
+   const role = userData.role
+
+   useEffect(() => {
+      if (!role) {
+         navigate('/');
+      }
+   }, [role, navigate])
 
    const [loading, setLoading] = useState(false)
-
    const defaultForm = {
       username: '',
       password: ''
@@ -19,9 +28,6 @@ function Login() {
       type: ''
    })
 
-   const navigate = useNavigate();
-   const location = useLocation();
-   const role = location.state?.role
 
 
    const login = async () => {
@@ -62,6 +68,8 @@ function Login() {
          [name]: value
       }))
    }
+
+   if (!role) return null;
 
    return (
       <div className='w-96 flex flex-col gap-5'>
