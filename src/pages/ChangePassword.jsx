@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { capitalize } from '../scripts/capitalize.js';
 import { api } from '../scripts/api.js';
 import { getUserData } from '../store/userStore';
+import { useNavigate } from 'react-router-dom'
 
 function ChangePassword() {
+   const navigate = useNavigate();
+
    const [loading, setLoading] = useState(false);
    const [confirmPassword, setConfirmPassword] = useState('');
    const [passwordMatchError, setPasswordMatchError] = useState(false);
@@ -63,6 +66,8 @@ function ChangePassword() {
          setFormValues(prev => ({ ...prev, oldPassword: '', newPassword: '' }));
          setConfirmPassword('');
          setPasswordMatchError(false);
+
+         navigate('/home');
       } catch (error) {
          setMsg({ msg: 'Uğursuz giriş', type: 'error' });
          console.log(error);

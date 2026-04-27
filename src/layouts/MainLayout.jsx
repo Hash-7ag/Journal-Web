@@ -6,8 +6,8 @@ function MainLayout() {
    return (
       <div className='container mx-auto flex flex-col justify-center items-center'>
          <Header />
-         <main>
-            <Suspense fallback={<h1>Loading...</h1>}>
+         <main className='w-full'>
+            <Suspense fallback={<span class="loading loading-spinner loading-xl"></span>}>
                <Outlet />
             </Suspense>
          </main>
