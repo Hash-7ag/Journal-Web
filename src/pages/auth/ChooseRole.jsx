@@ -1,18 +1,18 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { setUserData } from '../store/userStore.js';
+import { setUserStoreData } from '../../store/userStore.js';
 
 function ChooseRole() {
 
    const navigate = useNavigate()
 
    const moveToLogin = (role) => {
-      setUserData(null, role);
+      setUserStoreData(role);
       navigate('/login')
    }
 
    return (
-      <div className='mt-32'>
+      <div className='mt-32 w-full flex items-center justify-center'>
          <div className="join join-vertical lg:join-horizontal">
             <button onClick={() => moveToLogin('student')} className="btn btn-xl hover:bg-slate-700 join-item px-5 py-3">Student</button>
             <button onClick={() => moveToLogin('teacher')} className="btn btn-xl hover:bg-slate-700 join-item px-5 py-3">Teacher</button>

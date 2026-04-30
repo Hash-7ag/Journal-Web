@@ -1,6 +1,6 @@
-const STORAGE_KEY = "app_user_data";
+const STORAGE_KEY = "app_user_role";
 
-const getDefaultData = () => ({ username: null, role: null });
+const getDefaultStoreData = () => ({ role: null });
 
 let userData = (() => {
   const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -8,24 +8,24 @@ let userData = (() => {
     try {
       return JSON.parse(saved);
     } catch {
-      return getDefaultData;
+      return getDefaultStoreData;
     }
   }
-  return getDefaultData;
+  return getDefaultStoreData;
 })();
 
 const persist = () => {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
 };
 
-export const setUserData = (username, role) => {
-  userData = { username, role };
+export const setUserStoreData = (role) => {
+  userData = { role };
   persist();
 };
 
-export const getUserData = () => ({ ...userData });
+export const getUserStoreData = () => ({ ...userData });
 
-export const clearUserData = () => {
-  userData = getDefaultData();
+export const clearUserStoreData = () => {
+  userData = getDefaultStoreData();
   persist();
 };

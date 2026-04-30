@@ -13,10 +13,11 @@ function Header() {
             {
                !isHidden && (
                   <ul className="menu menu-horizontal px-1 gap-2">
+                     <li><Link to="/teachers">Teachers</Link></li>
+                     <li><Link to="/students">Students</Link></li>
+                     <li><Link to="/subjects">Subjects</Link></li>
+                     <li><Link to="/groups">Groups</Link></li>
                      <li><Link to="/home">Home</Link></li>
-                     <li><Link to="/">ChooseRole</Link></li>
-                     <li><Link to="/login">Login</Link></li>
-                     <li><Link to="/error">Error</Link></li>
                   </ul>
                )
             }
