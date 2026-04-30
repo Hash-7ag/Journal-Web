@@ -13,20 +13,20 @@ function Header() {
             {
                !isHidden && (
                   <ul className="menu menu-horizontal px-1 gap-2">
-                     <li><Link to="/teachers">Teachers</Link></li>
                      <li><Link to="/students">Students</Link></li>
+                     <li><Link to="/teachers">Teachers</Link></li>
                      <li><Link to="/subjects">Subjects</Link></li>
                      <li><Link to="/groups">Groups</Link></li>
-                     <li><Link to="/home">Home</Link></li>
+                     <li><Link to="/home">My Profile</Link></li>
                   </ul>
                )
             }
          </div>
-         <div className="navbar-end avatar">
+         <Link to="/home" className="navbar-end avatar cursor-pointer">
             <div className="rounded-full w-10">
                <img alt="Header Avatar" src='https://i.pinimg.com/736x/f5/47/d8/f547d800625af9056d62efe8969aeea0.jpg' />
             </div>
-         </div>
+         </Link>
       </header>
    )
 }
