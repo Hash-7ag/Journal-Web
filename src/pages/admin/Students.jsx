@@ -196,7 +196,7 @@ function Students() {
                      >
                         {submitting ? 'Adding...' : 'Add'}
                      </button>
-                     <button onClick={() => setIsModalOpen(false)} className="btn btn scale-100 sm:scale-125 py-2 px-4 rounded-md text-slate-300 hover:text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200">
+                     <button onClick={() => setIsModalOpen(false)} className="btn scale-100 sm:scale-125 py-2 px-4 rounded-md text-slate-300 hover:text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200">
                         Cancel
                      </button>
                   </div>
