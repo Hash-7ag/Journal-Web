@@ -44,8 +44,15 @@ function Login() {
          setMsg({
             msg: 'Uğurla daxil oldunuz!',
             type: 'success'
-         })
-         navigate('/changePassword');
+         });
+         const profileRes = await api.get(`/${role}/getMyProfile`);
+         const profile = profileRes.data;
+         const { isChangePassword } = profile;
+         if (isChangePassword === true) {
+            navigate('/home');
+         } else {
+            navigate('/changePassword');
+         }
       } catch (error) {
          setMsg({
             msg: 'Uğursuz giriş',
