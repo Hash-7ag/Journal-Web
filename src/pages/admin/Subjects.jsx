@@ -1,11 +1,220 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import { api } from '../../scripts/api';
 
 function Subjects() {
+   const [subjects, setSubjects] = useState([]);
+   const [teachers, setTeachers] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState('');
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [formData, setFormData] = useState({
+      teacherId: '',
+      subject: '',
+      semestr: '',
+      kredit: '',
+      totalHours: '',
+   });
+   const [submitting, setSubmitting] = useState(false);
+
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            setLoading(true);
+            const [subjectsRes, teachersRes] = await Promise.all([
+               api.get('/admin/getAllSubjects'),
+               api.get('/admin/getAllTeachers'),
+            ]);
+            setSubjects(subjectsRes.data);
+            setTeachers(teachersRes.data);
+         } catch (err) {
+            console.error('Yüklənmə zamanı xəta:', err);
+            setError(err.message || 'Yükləmə xətası');
+         } finally {
+            setLoading(false);
+         }
+      };
+      fetchData();
+   }, []);
+
+   const handleInputChange = (e) => {
+      const { name, value } = e.target;
+      setFormData(prev => ({ ...prev, [name]: value }));
+   };
+
+   const handleAddSubject = async () => {
+      const required = ['teacherId', 'subject', 'semestr', 'kredit', 'totalHours'];
+      const missing = required.filter(field => !String(formData[field]).trim());
+      if (missing.length) {
+         setError(`Please fill: ${missing.join(', ')}`);
+         return;
+      }
+
+      try {
+         setSubmitting(true);
+         const response = await api.post('/admin/createSubject', {
+            ...formData,
+            semestr: Number(formData.semestr),
+            kredit: Number(formData.kredit),
+            totalHours: Number(formData.totalHours),
+         });
+         const newSubject = response.data;
+         setSubjects(prev => [newSubject, ...prev]);
+         setIsModalOpen(false);
+         setFormData({ teacherId: '', subject: '', semestr: '', kredit: '', totalHours: '' });
+         setError('');
+      } catch (err) {
+         console.error('Create subject error:', err);
+         setError(err.response?.data?.message || 'Failed to create subject');
+      } finally {
+         setSubmitting(false);
+      }
+   };
+
+   const getTeacherName = (teacherId) => {
+      const teacher = teachers.find(t => t._id === teacherId?._id || t._id === teacherId);
+      return teacher ? `${teacher.name} ${teacher.surname}` : '—';
+   };
+
+   if (loading) {
+      return <div className="flex justify-center items-center h-screen">Yüklənmə...</div>;
+   }
+
    return (
       <div>
-         Subjects
+         <ul className="list bg-base-100 rounded-box shadow-md">
+            <li className="tracking-wide flex justify-between items-center">
+               <span className="p-4 pb-2 text-xs opacity-60">All Subjects List</span>
+               <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="p-2 rounded-lg text-md text-slate-300 hover:text-slate-200 bg-base-200 hover:bg-base-300 scale-95 sm:scale-100 transition-colors duration-200"
+               >
+                  Add Subject +
+               </button>
+            </li>
+
+            {subjects.length === 0 ? (
+               <li className="list-row justify-center p-4 text-center text-gray-500">
+                  No subjects found
+               </li>
+            ) : (
+               subjects.map((subject, index) => (
+                  <li className="list-row mt-2 mb-6 mx-10 shadow-md" key={subject._id || index}>
+                     <div className="flex items-center justify-center size-10 rounded-box bg-base-200 text-lg font-bold text-slate-400">
+                        {subject.subject?.charAt(0).toUpperCase()}
+                     </div>
+                     <div className="flex flex-col gap-1">
+                        <div className="font-medium">{subject.subject}</div>
+                        <div className="text-xs text-slate-500">
+                           T: {getTeacherName(subject.teacherId)} &nbsp;|&nbsp;
+                           Semestr: {subject.semestr} &nbsp;|&nbsp;
+                           Kredit: {subject.kredit} &nbsp;|&nbsp;
+                           Hours: {subject.totalHours}
+                        </div>
+                     </div>
+                     <button className="scale-100 sm:scale-125 p-2 rounded-full text-slate-500 hover:text-slate-400 bg-base-100 hover:bg-base-200 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                           <path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                     </button>
+                     <button className="scale-100 sm:scale-125 p-2 rounded-full text-slate-500 hover:text-slate-400 bg-base-100 hover:bg-base-200 transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                           <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                     </button>
+                  </li>
+               ))
+            )}
+         </ul>
+
+         {isModalOpen && (
+            <div className="modal modal-open" role="dialog">
+               <div className="modal-box flex flex-col justify-center items-center">
+                  <h3 className="text-lg font-bold">Add Subject</h3>
+                  <p className="py-4">Fill the data</p>
+
+                  <div className="w-full flex flex-col gap-4">
+
+                     {/* Teacher Select */}
+                     <fieldset className="fieldset w-full">
+                        <legend className="fieldset-legend">Teacher</legend>
+                        <select
+                           name="teacherId"
+                           value={formData.teacherId}
+                           onChange={handleInputChange}
+                           className="select w-full border border-base-200 shadow-md shadow-base-300 text-slate-300"
+                        >
+                           <option disabled value="">Pick a teacher</option>
+                           {teachers.map(teacher => (
+                              <option key={teacher._id} value={teacher._id}>
+                                 {teacher.name} {teacher.surname}
+                              </option>
+                           ))}
+                        </select>
+                     </fieldset>
+
+                     {/* Subject name */}
+                     <input
+                        type="text"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        className="input w-full border border-base-200 shadow-md shadow-base-300 p-3 text-lg hover:bg-base-200 text-slate-300"
+                        placeholder="Subject name"
+                     />
+
+                     <div className="flex flex-row gap-4 w-full">
+                        <input
+                           type="number"
+                           name="semestr"
+                           value={formData.semestr}
+                           onChange={handleInputChange}
+                           className="input w-full border border-base-200 shadow-md shadow-base-300 p-3 text-lg hover:bg-base-200 text-slate-300"
+                           placeholder="Semestr"
+                           min={1}
+                        />
+                        <input
+                           type="number"
+                           name="kredit"
+                           value={formData.kredit}
+                           onChange={handleInputChange}
+                           className="input w-full border border-base-200 shadow-md shadow-base-300 p-3 text-lg hover:bg-base-200 text-slate-300"
+                           placeholder="Kredit"
+                           min={1}
+                        />
+                        <input
+                           type="number"
+                           name="totalHours"
+                           value={formData.totalHours}
+                           onChange={handleInputChange}
+                           className="input w-full border border-base-200 shadow-md shadow-base-300 p-3 text-lg hover:bg-base-200 text-slate-300"
+                           placeholder="Total Hours"
+                           min={1}
+                        />
+                     </div>
+                  </div>
+
+                  {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+
+                  <div className="modal-action flex gap-14">
+                     <button
+                        onClick={handleAddSubject}
+                        disabled={submitting}
+                        className="btn scale-100 sm:scale-125 py-2 px-4 rounded-md text-slate-300 hover:text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200"
+                     >
+                        {submitting ? 'Adding...' : 'Add'}
+                     </button>
+                     <button
+                        onClick={() => { setIsModalOpen(false); setError(''); }}
+                        className="btn scale-100 sm:scale-125 py-2 px-4 rounded-md text-slate-300 hover:text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200"
+                     >
+                        Cancel
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
-   )
+   );
 }
 
-export default Subjects
+export default Subjects;
