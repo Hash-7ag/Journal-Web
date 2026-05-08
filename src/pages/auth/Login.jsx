@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { capitalize } from '../../scripts/capitalize.js'
-import { api } from '../../scripts/api.js';
+import api from '../../scripts/api';
 import { getUserStoreData } from '../../store/userStore.js';
 
 function Login() {

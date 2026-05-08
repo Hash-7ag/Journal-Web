@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../scripts/api';
+import api from '../../scripts/api';
 
 function Students() {
    const [students, setStudents] = useState([]);
@@ -13,7 +13,7 @@ function Students() {
       username: '',
       password: '',
       phoneNumber: '',
-      gmail: '',
+      email: '',
    });
    const [submitting, setSubmitting] = useState(false);
 
@@ -39,7 +39,7 @@ function Students() {
    };
 
    const handleAddStudent = async () => {
-      const required = ['name', 'surname', 'fatherName', 'username', 'password', 'phoneNumber', 'gmail'];
+      const required = ['name', 'surname', 'fatherName', 'username', 'password', 'phoneNumber', 'email'];
       const missing = required.filter(field => !formData[field].trim());
       if (missing.length) {
          setError(`Please fill: ${missing.join(', ')}`);
@@ -59,7 +59,7 @@ function Students() {
             username: '',
             password: '',
             phoneNumber: '',
-            gmail: '',
+            email: '',
          });
          setError('');
       } catch (err) {
@@ -171,8 +171,8 @@ function Students() {
                         />
                         <input
                            type="email"
-                           name="gmail"
-                           value={formData.gmail}
+                           name="email"
+                           value={formData.email}
                            onChange={handleInputChange}
                            className="input border border-base-200 shadow-md shadow-base-300 p-3 text-lg hover:bg-base-200 text-slate-300 hover:text-slate-300"
                            placeholder="Email"

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { capitalize } from '../../scripts/capitalize.js';
-import { api } from '../../scripts/api.js';
+import api from '../../scripts/api';
 import { getUserStoreData } from '../../store/userStore.js';
 import { useNavigate } from 'react-router-dom'
 

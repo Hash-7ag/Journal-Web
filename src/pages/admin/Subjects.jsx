@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../scripts/api';
+import api from '../../scripts/api';
 
 function Subjects() {
    const [subjects, setSubjects] = useState([]);
@@ -57,7 +57,7 @@ function Subjects() {
             kredit: Number(formData.kredit),
             totalHours: Number(formData.totalHours),
          });
-         const newSubject = response.data;
+         const newSubject = response?.data?.data;
          setSubjects(prev => [newSubject, ...prev]);
          setIsModalOpen(false);
          setFormData({ teacherId: '', subject: '', semestr: '', kredit: '', totalHours: '' });

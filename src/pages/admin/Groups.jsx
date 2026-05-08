@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../scripts/api';
+import api from '../../scripts/api';
 
 function Groups() {
    const [groups, setGroups] = useState([]);
@@ -16,6 +16,8 @@ function Groups() {
       students: [],
    });
    const [submitting, setSubmitting] = useState(false);
+   const [selectedSubjectArr, setSelectedSubjectArr] = useState([]);
+   const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
 
    useEffect(() => {
       const fetchData = async () => {
@@ -45,8 +47,25 @@ function Groups() {
    };
 
    const handleMultiSelect = (e, field) => {
-      const selected = Array.from(e.target.selectedOptions).map(o => o.value);
-      setFormData(prev => ({ ...prev, [field]: selected }));
+      if (field === 'subjects') {
+         const selectedOptions = Array.from(e.target.selectedOptions);
+
+         // Vizual göstəriş üçün value string-ləri
+         const selectedValues = selectedOptions.map(o => o.value);
+         setSelectedSubjectIds(selectedValues);
+
+         // Backend üçün obyektlər
+         const subjectObjs = selectedOptions.map(o => ({
+            subject: o.value.split("-")[0],
+            teacher: o.value.split("-")[1]
+         }));
+
+         setFormData(prev => ({ ...prev, subjects: subjectObjs }));
+
+      } else {
+         const selected = Array.from(e.target.selectedOptions).map(o => o.value);
+         setFormData(prev => ({ ...prev, [field]: selected }));
+      }
    };
 
    const handleAddGroup = async () => {
@@ -63,7 +82,7 @@ function Groups() {
             profession: formData.profession,
             groupNumber: formData.groupNumber,
             groupShifr: Number(formData.groupShifr),
-            subjects: formData.subjects.map(id => ({ subject: String(id) })),
+            subjects: formData.subjects,
             students: formData.students.map(id => ({ student: String(id) })),
          };
          console.log('Sending payload:', JSON.stringify(payload, null, 2));
@@ -190,12 +209,12 @@ function Groups() {
                         <legend className="fieldset-legend">Subjects</legend>
                         <select
                            multiple
-                           value={formData.subjects}
+                           value={selectedSubjectIds}
                            onChange={(e) => handleMultiSelect(e, 'subjects')}
                            className="select w-full border border-base-200 shadow-md text-slate-300 h-28"
                         >
                            {subjects.map(s => (
-                              <option key={s._id} value={s._id}>{s.subject}</option>
+                              <option key={s._id} value={`${s._id}-${s.teacherId?._id}`}>{s.subject}</option>
                            ))}
                         </select>
                         <span className="label text-xs opacity-50">Hold Ctrl to select multiple</span>
@@ -230,7 +249,7 @@ function Groups() {
                         {submitting ? 'Adding...' : 'Add'}
                      </button>
                      <button
-                        onClick={() => { setIsModalOpen(false); setError(''); }}
+                        onClick={() => { setIsModalOpen(false); setError(''); setSelectedSubjectIds([]); }}
                         className="btn py-2 px-6 rounded-md text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200"
                      >
                         Cancel
