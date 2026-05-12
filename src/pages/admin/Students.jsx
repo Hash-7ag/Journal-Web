@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../scripts/api';
+import api from '../../scripts/api.js';
 
 function Students() {
    const [students, setStudents] = useState([]);
@@ -22,7 +22,7 @@ function Students() {
          try {
             setLoading(true);
             const response = await api.get('/admin/getAllStudents');
-            setStudents(response.data);
+            setStudents(response.data.data);
          } catch (err) {
             console.error('Yüklənmə zamanı xəta:', err);
             setError(err.message || 'yükləmə xətası');

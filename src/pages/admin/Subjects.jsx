@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../scripts/api';
+import api from '../../scripts/api.js';
 
 function Subjects() {
    const [subjects, setSubjects] = useState([]);
@@ -24,8 +24,8 @@ function Subjects() {
                api.get('/admin/getAllSubjects'),
                api.get('/admin/getAllTeachers'),
             ]);
-            setSubjects(subjectsRes.data);
-            setTeachers(teachersRes.data);
+            setSubjects(subjectsRes.data.data);
+            setTeachers(teachersRes.data.data);
          } catch (err) {
             console.error('Yüklənmə zamanı xəta:', err);
             setError(err.message || 'Yükləmə xətası');

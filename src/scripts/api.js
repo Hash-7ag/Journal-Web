@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const baseApi = "http://localhost:3000/api";
+const baseApi = "https://journal-p8ru.onrender.com/api";
 
 const api = axios.create({
   baseURL: baseApi,

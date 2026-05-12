@@ -16,7 +16,7 @@ function Groups() {
       students: [],
    });
    const [submitting, setSubmitting] = useState(false);
-   const [selectedSubjectArr, setSelectedSubjectArr] = useState([]);
+   // const [selectedSubjectArr, setSelectedSubjectArr] = useState([]);
    const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
 
    useEffect(() => {
@@ -28,9 +28,9 @@ function Groups() {
                api.get('/admin/getAllSubjects'),
                api.get('/admin/getAllStudents'),
             ]);
-            setGroups(groupsRes.data);
-            setSubjects(subjectsRes.data);
-            setStudents(studentsRes.data);
+            setGroups(groupsRes.data.data);
+            setSubjects(subjectsRes.data.data);
+            setStudents(studentsRes.data.data);
          } catch (err) {
             console.error('Yüklənmə zamanı xəta:', err);
             setError(err.message || 'Yükləmə xətası');

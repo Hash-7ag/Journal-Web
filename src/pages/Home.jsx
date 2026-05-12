@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { capitalize } from '../scripts/capitalize.js'
-import api from '../../scripts/api';
+import api from '../scripts/api.js';
 
 function Home() {
    const [userData, setUserData] = useState(null);

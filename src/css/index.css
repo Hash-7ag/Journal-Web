@@ -2,3 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 @plugin "daisyui";
+
+:root {
+   --color-primary: #8B5CF6;
+   --color-primary-soft: #A78BFA;
+   --color-primary-glow: #C4B5FD;
+   --color-blue: #3B82F6;
+   --color-blue-soft: #60A5FA;
+   --color-blue-glow: #93C5FD;
+}
+
+[data-theme="light"] {
+   --bg-base: #F8F9FB;
+   --bg-soft: #EEF1F6;
+   --border: #D6DAE3;
+}
+
+[data-theme="dark"] {
+   --bg-base: #1A1D24;
+   --bg-soft: #0F1115;
+   --border: #2A2F3A;
+}

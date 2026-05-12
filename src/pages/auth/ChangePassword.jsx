@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { capitalize } from '../../scripts/capitalize.js';
 import api from '../../scripts/api';
 import { getUserStoreData } from '../../store/userStore.js';
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
+import { FiLock, FiAlertCircle, FiArrowRight, FiShield } from 'react-icons/fi';
 
 function ChangePassword() {
    const navigate = useNavigate();
-
    const [loading, setLoading] = useState(false);
    const [confirmPassword, setConfirmPassword] = useState('');
-   const [passwordMatchError, setPasswordMatchError] = useState(false);
-   const [msg, setMsg] = useState({ msg: '', type: '' });
+   const [frontError, setFrontError] = useState('');
+   const [serverError, setServerError] = useState('');
+   const [success, setSuccess] = useState('');
 
    const [formValues, setFormValues] = useState({
       oldPassword: '',
@@ -20,137 +21,143 @@ function ChangePassword() {
    const handleFormChange = (e) => {
       const { name, value } = e.target;
       setFormValues(prev => ({ ...prev, [name]: value }));
-      if (name === 'newPassword') {
-         setPasswordMatchError(confirmPassword !== value);
-      }
+      setFrontError('');
    };
 
    const handleConfirmChange = (e) => {
-      const value = e.target.value;
-      setConfirmPassword(value);
-      setPasswordMatchError(formValues.newPassword !== value);
+      setConfirmPassword(e.target.value);
+      setFrontError('');
    };
 
    const handleSubmit = async () => {
+      setFrontError('');
+      setServerError('');
+      setSuccess('');
+
+      if (!formValues.oldPassword.trim() || !formValues.newPassword.trim() || !confirmPassword.trim()) {
+         setFrontError('Bütün sahələr doldurulmalıdır');
+         return;
+      }
+      if (formValues.newPassword !== confirmPassword) {
+         setFrontError('Yeni parollar uyğun gəlmir');
+         return;
+      }
+
       try {
          setLoading(true);
-         if (
-            formValues.oldPassword.trim() === '' ||
-            formValues.newPassword.trim() === ''
-         ) {
-            setMsg({ msg: 'Məlumatlar doldurulmayıb', type: 'error' });
-            return;
-         }
-         if (formValues.newPassword !== confirmPassword) {
-            setPasswordMatchError(true);
-            setMsg({ msg: 'Yeni parollar uyğun gəlmir', type: 'error' });
-            return;
-         }
-
          const userData = getUserStoreData();
          const role = userData.role;
          if (!role) throw new Error('Role not found');
 
-         const res = await api.post(`/${role}/changePasswordAs${capitalize(role)}`, formValues);
-         setMsg({ msg: 'Uğurla daxil oldunuz!', type: 'success' });
-
-         setFormValues(prev => ({ ...prev, oldPassword: '', newPassword: '' }));
+         await api.post(`/${role}/changePasswordAs${capitalize(role)}`, formValues);
+         setSuccess('Parol uğurla dəyişdirildi!');
+         setFormValues({ oldPassword: '', newPassword: '' });
          setConfirmPassword('');
-         setPasswordMatchError(false);
-         navigate('/home');
+         setTimeout(() => navigate('/home'), 1000);
       } catch (error) {
-         setMsg({ msg: 'Uğursuz giriş', type: 'error' });
-         console.log(error);
+         setServerError(
+            error.response?.data?.message || 'Xəta baş verdi. Yenidən cəhd edin.'
+         );
       } finally {
          setLoading(false);
       }
    };
 
+   const fields = [
+      { name: 'oldPassword', label: 'Köhnə şifrə', value: formValues.oldPassword, onChange: handleFormChange },
+      { name: 'newPassword', label: 'Yeni şifrə', value: formValues.newPassword, onChange: handleFormChange },
+      { name: 'confirmPassword', label: 'Yeni şifrə (təsdiq)', value: confirmPassword, onChange: handleConfirmChange },
+   ]
+
    return (
-      <div className='w-full flex justify-center items-center'>
-         <div className="w-96 flex flex-col gap-5">
-            <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
-               <legend className="fieldset-legend text-xl">Parolunuzu dəyişdirin!</legend>
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
+         <div className="w-full max-w-sm flex flex-col gap-4">
 
-               <label className="label">Köhnə password</label>
-               <input
-                  type="password"
-                  className="p-3 input validator"
-                  required
-                  placeholder="Password"
-                  minLength="8"
-                  pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                  title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
-                  name="oldPassword"
-                  value={formValues.oldPassword}
-                  onChange={handleFormChange}
-               />
-               <p className="validator-hint hidden">Required</p>
+            {/* Card */}
+            <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
 
-               <label className="label">Yeni password</label>
-               <input
-                  type="password"
-                  className="p-3 input validator"
-                  required
-                  placeholder="Password"
-                  minLength="8"
-                  pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                  title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
-                  name="newPassword"
-                  value={formValues.newPassword}
-                  onChange={handleFormChange}
-               />
-               <p className="validator-hint hidden">Required</p>
+               {/* Top gradient bar */}
+               <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
 
-               <label className="label">Yeni password (təsdiq)</label>
-               <input
-                  type="password"
-                  className="p-3 input validator"
-                  required
-                  placeholder="Password"
-                  minLength="8"
-                  pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                  title="Must be more than 8 characters, including number, lowercase letter, uppercase letter"
-                  name="confirmPassword"
-                  value={confirmPassword}
-                  onChange={handleConfirmChange}
-               />
-               <p className={`validator-hint ${passwordMatchError ? '' : 'hidden'}`}>
-                  Şifrələr uyğun gəlmir
-               </p>
+               <div className="p-8 flex flex-col gap-6">
 
-               <button className="btn btn-neutral mt-4" onClick={handleSubmit}>
-                  {loading ? 'Dəyişdirilir...' : 'Parolu dəyiş'}
-               </button>
-            </fieldset>
+                  {/* Header */}
+                  <div className="flex flex-col items-center gap-2 text-center">
+                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md">
+                        <FiShield size={20} />
+                     </div>
+                     <h2 className="text-xl font-bold">Parolu dəyişdir</h2>
+                     <p className="text-xs opacity-40">
+                        Təhlükəsizlik üçün yeni parol təyin edin
+                     </p>
+                  </div>
 
-            {msg?.msg !== '' && (
-               <div role="alert" className={`alert alert-${msg.type === 'success' ? 'success' : 'error'}`}>
-                  <svg
-                     xmlns="http://www.w3.org/2000/svg"
-                     className="h-6 w-6 shrink-0 stroke-current"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                  >
-                     {msg.type === 'success' ? (
-                        <path
-                           strokeLinecap="round"
-                           strokeLinejoin="round"
-                           strokeWidth="2"
-                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                     ) : (
-                        <path
-                           strokeLinecap="round"
-                           strokeLinejoin="round"
-                           strokeWidth="2"
-                           d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                  {/* Fields */}
+                  <div className="flex flex-col gap-3">
+                     {fields.map(({ name, label, value, onChange }) => (
+                        <div key={name} className="flex flex-col gap-1">
+                           <label className="text-xs font-medium opacity-60 ml-1">
+                              {label}
+                           </label>
+                           <div className="relative">
+                              <FiLock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
+                              <input
+                                 type="password"
+                                 name={name}
+                                 value={value}
+                                 onChange={onChange}
+                                 placeholder="••••••••"
+                                 className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
+                              />
+                           </div>
+                        </div>
+                     ))}
+
+                     {/* Front-end error */}
+                     {frontError && (
+                        <span className="flex items-center gap-1.5 text-red-400 text-xs ml-1">
+                           <FiAlertCircle size={13} />
+                           {frontError}
+                        </span>
                      )}
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                     onClick={handleSubmit}
+                     disabled={loading}
+                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-60"
+                  >
+                     {loading ? (
+                        <span className="loading loading-spinner loading-xs" />
+                     ) : (
+                        <>Parolu dəyiş <FiArrowRight size={15} /></>
+                     )}
+                  </button>
+
+               </div>
+            </div>
+
+            {/* Server error alert */}
+            {serverError && (
+               <div role="alert" className="alert alert-error rounded-xl shadow">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>{msg.msg}</span>
+                  <span>{serverError}</span>
                </div>
             )}
+
+            {/* Success alert */}
+            {success && (
+               <div role="alert" className="alert alert-success rounded-xl shadow">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{success}</span>
+               </div>
+            )}
+
          </div>
       </div>
    );
