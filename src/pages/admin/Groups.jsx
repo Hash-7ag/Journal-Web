@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../scripts/api';
+import { FiPlus, FiUsers, FiBook } from 'react-icons/fi';
 
 function Groups() {
    const [groups, setGroups] = useState([]);
@@ -16,7 +17,6 @@ function Groups() {
       students: [],
    });
    const [submitting, setSubmitting] = useState(false);
-   // const [selectedSubjectArr, setSelectedSubjectArr] = useState([]);
    const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
 
    useEffect(() => {
@@ -49,19 +49,14 @@ function Groups() {
    const handleMultiSelect = (e, field) => {
       if (field === 'subjects') {
          const selectedOptions = Array.from(e.target.selectedOptions);
-
-         // Vizual göstəriş üçün value string-ləri
-         const selectedValues = selectedOptions.map(o => o.value);
-         setSelectedSubjectIds(selectedValues);
-
-         // Backend üçün obyektlər
-         const subjectObjs = selectedOptions.map(o => ({
-            subject: o.value.split("-")[0],
-            teacher: o.value.split("-")[1]
+         setSelectedSubjectIds(selectedOptions.map(o => o.value));
+         setFormData(prev => ({
+            ...prev,
+            subjects: selectedOptions.map(o => ({
+               subject: o.value.split("-")[0],
+               teacher: o.value.split("-")[1]
+            }))
          }));
-
-         setFormData(prev => ({ ...prev, subjects: subjectObjs }));
-
       } else {
          const selected = Array.from(e.target.selectedOptions).map(o => o.value);
          setFormData(prev => ({ ...prev, [field]: selected }));
@@ -72,10 +67,9 @@ function Groups() {
       const required = ['profession', 'groupNumber', 'groupShifr'];
       const missing = required.filter(field => !String(formData[field]).trim());
       if (missing.length) {
-         setError(`Please fill: ${missing.join(', ')}`);
+         setError(`Zəhmət olmasa doldurun: ${missing.join(', ')}`);
          return;
       }
-
       try {
          setSubmitting(true);
          const payload = {
@@ -85,14 +79,13 @@ function Groups() {
             subjects: formData.subjects,
             students: formData.students.map(id => ({ student: String(id) })),
          };
-         console.log('Sending payload:', JSON.stringify(payload, null, 2));
          const response = await api.post('/admin/createGroup', payload);
          setGroups(prev => [response.data, ...prev]);
          setIsModalOpen(false);
          setFormData({ profession: '', groupNumber: '', groupShifr: '', subjects: [], students: [] });
+         setSelectedSubjectIds([]);
          setError('');
       } catch (err) {
-         console.error('Create group error:', err);
          setError(err.response?.data?.message || 'Failed to create group');
       } finally {
          setSubmitting(false);
@@ -100,35 +93,43 @@ function Groups() {
    };
 
    const groupColors = [
-      'from-violet-500 to-purple-700',
-      'from-blue-500 to-cyan-700',
-      'from-emerald-500 to-teal-700',
-      'from-orange-500 to-red-600',
-      'from-pink-500 to-rose-700',
-      'from-indigo-500 to-blue-700',
+      'from-[#8B5CF6] to-[#3B82F6]',
+      'from-[#3B82F6] to-[#60A5FA]',
+      'from-[#8B5CF6] to-[#A78BFA]',
+      'from-[#6366F1] to-[#8B5CF6]',
+      'from-[#3B82F6] to-[#8B5CF6]',
+      'from-[#A78BFA] to-[#60A5FA]',
    ];
 
    if (loading) {
-      return <div className="flex justify-center items-center h-screen">Yüklənmə...</div>;
+      return (
+         <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+            <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
+         </div>
+      );
    }
 
    return (
-      <div className="p-4">
+      <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
 
-         {/* Header */}
-         <div className="flex justify-between items-center mb-6">
-            <span className="text-xs opacity-60 tracking-wide">All Groups</span>
+         {/* Page header */}
+         <div className="flex justify-between items-center mb-8">
+            <div>
+               <h1 className="text-lg font-bold">Qruplar</h1>
+               <p className="text-xs opacity-40 mt-0.5">Bütün qrupların siyahısı</p>
+            </div>
             <button
                onClick={() => setIsModalOpen(true)}
-               className="p-2 rounded-lg text-md text-slate-300 hover:text-slate-200 bg-base-200 hover:bg-base-300 transition-colors duration-200"
+               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
             >
-               Add Group +
+               <FiPlus size={16} />
+               Qrup əlavə et
             </button>
          </div>
 
          {/* Grid */}
          {groups.length === 0 ? (
-            <div className="text-center text-gray-500 mt-10">No groups found</div>
+            <div className="text-center opacity-40 mt-20 text-sm">Heç bir qrup tapılmadı</div>
          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                {groups.map((group, index) => {
@@ -136,31 +137,36 @@ function Groups() {
                   return (
                      <div
                         key={group._id || index}
-                        className="bg-base-100 rounded-2xl shadow-md p-4 flex flex-col items-center gap-2 hover:shadow-lg transition-shadow duration-200"
+                        className="bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                      >
-                        {/* Circle with group number */}
+                        {/* Circle */}
                         <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
                            {group.groupNumber}
                         </div>
 
                         {/* Profession */}
-                        <div className="text-sm font-semibold text-slate-300 text-center leading-tight">
+                        <div className="text-sm font-semibold text-center leading-tight">
                            {group.profession}
                         </div>
 
                         {/* Shifr */}
-                        <div className="text-xs text-slate-600 tracking-widest">
+                        <div className="text-xs opacity-30 tracking-widest font-mono">
                            #{group.groupShifr}
                         </div>
 
+                        {/* Divider */}
+                        <div className="w-full h-px bg-base-200" />
+
                         {/* Stats */}
-                        <div className="flex gap-3 mt-1">
-                           <span className="text-xs text-slate-500">
-                              T: {group.students?.length ?? 0}
-                           </span>
-                           <span className="text-xs text-slate-500">
-                              S: {group.subjects?.length ?? 0}
-                           </span>
+                        <div className="flex gap-4 w-full justify-center">
+                           <div className="flex items-center gap-1 text-xs opacity-50">
+                              <FiUsers size={12} />
+                              {group.students?.length ?? 0}
+                           </div>
+                           <div className="flex items-center gap-1 text-xs opacity-50">
+                              <FiBook size={12} />
+                              {group.subjects?.length ?? 0}
+                           </div>
                         </div>
                      </div>
                   );
@@ -171,90 +177,116 @@ function Groups() {
          {/* Modal */}
          {isModalOpen && (
             <div className="modal modal-open" role="dialog">
-               <div className="modal-box flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-center">Add Group</h3>
+               <div className="modal-box rounded-2xl border border-base-200 shadow-xl flex flex-col gap-5 p-8">
+
+                  {/* Modal header */}
+                  <div className="flex flex-col items-center gap-1 text-center">
+                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md mb-1">
+                        <FiPlus size={18} />
+                     </div>
+                     <h3 className="text-lg font-bold">Yeni qrup</h3>
+                     <p className="text-xs opacity-40">Məlumatları doldurun</p>
+                  </div>
 
                   <div className="flex flex-col gap-3 w-full">
 
-                     <input
-                        type="text"
-                        name="profession"
-                        value={formData.profession}
-                        onChange={handleInputChange}
-                        className="input w-full border border-base-200 shadow-md p-3 text-lg hover:bg-base-200 text-slate-300"
-                        placeholder="Profession"
-                     />
-
-                     <div className="flex gap-3">
+                     {/* Profession */}
+                     <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium opacity-50 ml-1">İxtisas</label>
                         <input
                            type="text"
-                           name="groupNumber"
-                           value={formData.groupNumber}
+                           name="profession"
+                           value={formData.profession}
                            onChange={handleInputChange}
-                           className="input w-full border border-base-200 shadow-md p-3 text-lg hover:bg-base-200 text-slate-300"
-                           placeholder="Group Number"
-                        />
-                        <input
-                           type="number"
-                           name="groupShifr"
-                           value={formData.groupShifr}
-                           onChange={handleInputChange}
-                           className="input w-full border border-base-200 shadow-md p-3 text-lg hover:bg-base-200 text-slate-300"
-                           placeholder="Group Shifr"
+                           className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                           placeholder="İxtisas adı"
                         />
                      </div>
 
-                     {/* Subjects multi-select */}
-                     <fieldset className="fieldset w-full">
-                        <legend className="fieldset-legend">Subjects</legend>
+                     {/* Group number + shifr */}
+                     <div className="flex gap-3">
+                        <div className="flex flex-col gap-1 flex-1">
+                           <label className="text-xs font-medium opacity-50 ml-1">Qrup nömrəsi</label>
+                           <input
+                              type="text"
+                              name="groupNumber"
+                              value={formData.groupNumber}
+                              onChange={handleInputChange}
+                              className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                              placeholder="Məs: 101"
+                           />
+                        </div>
+                        <div className="flex flex-col gap-1 flex-1">
+                           <label className="text-xs font-medium opacity-50 ml-1">Şifrə</label>
+                           <input
+                              type="number"
+                              name="groupShifr"
+                              value={formData.groupShifr}
+                              onChange={handleInputChange}
+                              className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                              placeholder="Məs: 2401"
+                           />
+                        </div>
+                     </div>
+
+                     {/* Subjects */}
+                     <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium opacity-50 ml-1">Fənlər</label>
                         <select
                            multiple
                            value={selectedSubjectIds}
                            onChange={(e) => handleMultiSelect(e, 'subjects')}
-                           className="select w-full border border-base-200 shadow-md text-slate-300 h-28"
+                           className="select w-full rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm h-28"
                         >
                            {subjects.map(s => (
-                              <option key={s._id} value={`${s._id}-${s.teacherId?._id}`}>{s.subject}</option>
+                              <option key={s._id} value={`${s._id}-${s.teacherId?._id}`}>
+                                 {s.subject}
+                              </option>
                            ))}
                         </select>
-                        <span className="label text-xs opacity-50">Hold Ctrl to select multiple</span>
-                     </fieldset>
+                        <span className="text-xs opacity-30 ml-1">Çoxlu seçim üçün Ctrl basın</span>
+                     </div>
 
-                     {/* Students multi-select */}
-                     <fieldset className="fieldset w-full">
-                        <legend className="fieldset-legend">Students</legend>
+                     {/* Students */}
+                     <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium opacity-50 ml-1">Şagirdlər</label>
                         <select
                            multiple
                            value={formData.students}
                            onChange={(e) => handleMultiSelect(e, 'students')}
-                           className="select w-full border border-base-200 shadow-md text-slate-300 h-28"
+                           className="select w-full rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm h-28"
                         >
                            {students.map(s => (
-                              <option key={s._id} value={s._id}>{s.name} {s.surname}</option>
+                              <option key={s._id} value={s._id}>
+                                 {s.name} {s.surname}
+                              </option>
                            ))}
                         </select>
-                        <span className="label text-xs opacity-50">Hold Ctrl to select multiple</span>
-                     </fieldset>
-
+                        <span className="text-xs opacity-30 ml-1">Çoxlu seçim üçün Ctrl basın</span>
+                     </div>
                   </div>
 
-                  {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+                  {error && (
+                     <span className="text-red-400 text-xs text-center">{error}</span>
+                  )}
 
-                  <div className="modal-action flex gap-14 justify-center">
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-1">
                      <button
                         onClick={handleAddGroup}
                         disabled={submitting}
-                        className="btn py-2 px-6 rounded-md text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200"
+                        className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-60"
                      >
-                        {submitting ? 'Adding...' : 'Add'}
+                        {submitting ? <span className="loading loading-spinner loading-xs" /> : 'Əlavə et'}
                      </button>
                      <button
                         onClick={() => { setIsModalOpen(false); setError(''); setSelectedSubjectIds([]); }}
-                        className="btn py-2 px-6 rounded-md text-slate-300 bg-base-100 hover:bg-base-200 transition-colors duration-200"
+                        className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
                      >
-                        Cancel
+                        Ləğv et
                      </button>
                   </div>
+
                </div>
             </div>
          )}

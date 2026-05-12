@@ -8,7 +8,7 @@ const Students = lazy(() => import("../pages/admin/Students"));
 const Teachers = lazy(() => import("../pages/admin/Teachers"));
 const ChangePassword = lazy(() => import("../pages/auth/ChangePassword"));
 const ChooseRole = lazy(() => import("../pages/auth/ChooseRole"));
-const Home = lazy(() => import("../pages/Home"));
+const Home = lazy(() => import("../pages/admin/Home"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const NotFound = lazy(() => import("../pages/error/NotFound"));
 

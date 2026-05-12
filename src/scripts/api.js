@@ -23,7 +23,7 @@ api.interceptors.response.use(
     const isAuthEndpoint =
       originalRequest?.url?.includes("loginAs") ||
       originalRequest?.url?.includes("refreshToken") ||
-      originalRequest?.url?.includes("getMyProfile"); // <-- добавь это
+      originalRequest?.url?.includes("getMyProfile");
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
@@ -31,7 +31,6 @@ api.interceptors.response.use(
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          // динамически берём роль вместо захардкоженного admin
           const role = getUserStoreData().role || "admin";
           refreshPromise = api.post(`/auth/${role}/refreshToken`);
         }
