@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getUserStoreData } from "../store/userStore.js";
 
 const baseApi = "https://journal-p8ru.onrender.com/api";
 
@@ -18,13 +19,11 @@ api.interceptors.response.use(
     if (!error.response) return Promise.reject(error);
 
     const status = error.response.status;
+
     const isAuthEndpoint =
-      originalRequest?.url?.includes("/admin/loginAsAdmin") ||
-      originalRequest?.url?.includes("/teacher/loginAsTeacher") ||
-      originalRequest?.url?.includes("/student/loginAsStudent") ||
-      originalRequest?.url?.includes("/auth/student/refreshToken") ||
-      originalRequest?.url?.includes("/auth/teacher/refreshToken") ||
-      originalRequest?.url?.includes("/auth/admin/refreshToken");
+      originalRequest?.url?.includes("loginAs") ||
+      originalRequest?.url?.includes("refreshToken") ||
+      originalRequest?.url?.includes("getMyProfile"); // <-- добавь это
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
@@ -32,11 +31,12 @@ api.interceptors.response.use(
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          refreshPromise = api.post("/auth/admin/refreshToken");
+          // динамически берём роль вместо захардкоженного admin
+          const role = getUserStoreData().role || "admin";
+          refreshPromise = api.post(`/auth/${role}/refreshToken`);
         }
 
         await refreshPromise;
-
         isRefreshing = false;
         refreshPromise = null;
 
@@ -44,11 +44,6 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         isRefreshing = false;
         refreshPromise = null;
-
-        //   try {
-        //     // await api.post("/auth/customer/logout");
-        //   } catch (e) {
-        //   }
         return Promise.reject(refreshErr);
       }
     }
