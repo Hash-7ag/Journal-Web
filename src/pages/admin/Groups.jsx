@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../scripts/api';
-import { FiPlus, FiUsers, FiBook } from 'react-icons/fi';
+import { FiPlus, FiUsers, FiBook, FiArrowRight } from 'react-icons/fi';
 
 function Groups() {
+   const navigate = useNavigate();
+
    const [groups, setGroups] = useState([]);
    const [subjects, setSubjects] = useState([]);
    const [students, setStudents] = useState([]);
@@ -137,7 +140,8 @@ function Groups() {
                   return (
                      <div
                         key={group._id || index}
-                        className="bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                        onClick={() => navigate(`/groups/${group._id}`, { state: { group } })}
+                        className="group bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
                      >
                         {/* Circle */}
                         <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
@@ -157,8 +161,8 @@ function Groups() {
                         {/* Divider */}
                         <div className="w-full h-px bg-base-200" />
 
-                        {/* Stats */}
-                        <div className="flex gap-4 w-full justify-center">
+                        {/* Stats + arrow */}
+                        <div className="flex gap-4 w-full justify-center items-center">
                            <div className="flex items-center gap-1 text-xs opacity-50">
                               <FiUsers size={12} />
                               {group.students?.length ?? 0}
@@ -167,6 +171,10 @@ function Groups() {
                               <FiBook size={12} />
                               {group.subjects?.length ?? 0}
                            </div>
+                           <FiArrowRight
+                              size={12}
+                              className="ml-auto opacity-0 group-hover:opacity-40 transition-opacity duration-200"
+                           />
                         </div>
                      </div>
                   );

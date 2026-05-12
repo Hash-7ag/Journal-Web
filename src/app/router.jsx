@@ -3,6 +3,7 @@ import { lazy } from "react";
 import MainLayout from "../layouts/MainLayout";
 
 const Groups = lazy(() => import("../pages/admin/Groups"));
+const GroupDetail = lazy(() => import("../pages/admin/GroupDetail"));
 const Subjects = lazy(() => import("../pages/admin/Subjects"));
 const Students = lazy(() => import("../pages/admin/Students"));
 const Teachers = lazy(() => import("../pages/admin/Teachers"));
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
          { path: "home", element: <Home /> },
          { path: "teachers", element: <Teachers /> },
          { path: "groups", element: <Groups /> },
+         { path: "groups/:id", element: <GroupDetail /> },
          { path: "subjects", element: <Subjects /> },
          { path: "students", element: <Students /> },
          { path: "*", element: <NotFound /> }
