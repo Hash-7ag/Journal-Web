@@ -34,7 +34,27 @@ function Header() {
       { to: '/student/grades', label: 'Qiymətlər', icon: <FiAward size={15} /> },
    ]
 
-   const navLinks = role === 'student' ? studentLinks : adminLinks
+   const teacherLinks = [
+      { to: '/teacher/home', label: 'Profil', icon: <FiHome size={15} /> },
+      { to: '/teacher/groups', label: 'Qruplar', icon: <FiGrid size={15} /> },
+   ]
+
+   const navLinks =
+      role === 'student' ? studentLinks :
+         role === 'teacher' ? teacherLinks :
+            adminLinks
+
+   const homeLink =
+      role === 'student' ? '/student/home' :
+         role === 'teacher' ? '/teacher/home' :
+            '/home'
+
+   // Active check — teacher group detail pages share /teacher/groups prefix
+   const isActive = (to) => {
+      if (to === location.pathname) return true;
+      if (to !== '/' && location.pathname.startsWith(to) && to !== '/home' && to !== '/student/home' && to !== '/teacher/home') return true;
+      return false;
+   }
 
    return (
       <header className="w-full sticky top-0 z-50 bg-base-100/80 backdrop-blur border-b border-base-200 shadow-sm">
@@ -56,7 +76,7 @@ function Header() {
                         key={to}
                         to={to}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
-                           ${location.pathname === to
+                           ${isActive(to)
                               ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
                               : 'opacity-60 hover:opacity-100 hover:bg-base-200'
                            }`}
@@ -80,7 +100,7 @@ function Header() {
                </label>
 
                {!isHidden && (
-                  <Link to={role === 'student' ? '/student/home' : '/home'}>
+                  <Link to={homeLink}>
                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer hover:shadow-lg transition-shadow">
                         {role?.charAt(0).toUpperCase()}
                      </div>

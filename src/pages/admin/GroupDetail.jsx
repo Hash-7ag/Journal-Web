@@ -54,6 +54,13 @@ function GroupDetail() {
       loadAll();
    }, []);
 
+   const getSubjectDetails = (item) => {
+      const s = item.subject ?? item;
+      const sid = typeof s === 'object' ? s._id : s;
+      const full = allSubjects.find(sub => sub._id === sid);
+      return full ?? s;
+   };
+
    // Load group
    useEffect(() => {
       if (state?.group) {
@@ -273,9 +280,9 @@ function GroupDetail() {
                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                      {subjects.map((item, index) => {
-                        const s = item.subject ?? item;
-                        const sid = typeof s === 'object' ? s._id : s;
-                        const teacher = s.teacherId ?? item.teacher;
+                        const s = getSubjectDetails(item);
+                        const sid = s._id;
+                        const teacher = s.teacherId;
                         return (
                            <div key={sid ?? index} className="group/card bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                               <div className="flex items-center gap-3">
@@ -298,7 +305,9 @@ function GroupDetail() {
                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-white shrink-0">
                                           <FiUser size={11} />
                                        </div>
-                                       <span className="text-xs opacity-60 truncate">{teacher.name} {teacher.surname}</span>
+                                       <span className="text-xs opacity-60 truncate">
+                                          {teacher.name} {teacher.surname}
+                                       </span>
                                     </div>
                                  </>
                               )}

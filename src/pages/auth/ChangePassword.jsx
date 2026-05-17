@@ -18,6 +18,12 @@ function ChangePassword() {
       newPassword: ''
    });
 
+   const homeRoutes = {
+      admin: '/home',
+      student: '/student/home',
+      teacher: '/teacher/home',
+   };
+
    const handleFormChange = (e) => {
       const { name, value } = e.target;
       setFormValues(prev => ({ ...prev, [name]: value }));
@@ -53,7 +59,7 @@ function ChangePassword() {
          setSuccess('Parol uğurla dəyişdirildi!');
          setFormValues({ oldPassword: '', newPassword: '' });
          setConfirmPassword('');
-         setTimeout(() => navigate('/home'), 1000);
+         setTimeout(() => navigate(homeRoutes[role] ?? '/home'), 1000);
       } catch (error) {
          setServerError(
             error.response?.data?.message || 'Xəta baş verdi. Yenidən cəhd edin.'

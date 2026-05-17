@@ -44,19 +44,25 @@ function Login() {
          return;
       }
 
+      const homeRoutes = {
+         admin: '/home',
+         student: '/student/home',
+         teacher: '/teacher/home',
+      };
+
       try {
-         setLoading(true)
+         setLoading(true);
          await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
          setSuccess('Uğurla daxil oldunuz!');
          const profileRes = await api.get(`/${role}/getMyProfile`);
          const { isChangePassword } = profileRes.data;
-         navigate(isChangePassword ? '/home' : '/changePassword');
+         navigate(isChangePassword ? homeRoutes[role] : '/changePassword');
       } catch (error) {
          setServerError(
             error.response?.data?.message || 'Uğursuz giriş. Yenidən cəhd edin.'
-         )
+         );
       } finally {
-         setLoading(false)
+         setLoading(false);
       }
    }
 
