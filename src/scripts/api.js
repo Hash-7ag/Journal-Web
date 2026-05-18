@@ -1,7 +1,6 @@
 import axios from "axios";
-import { getUserStoreData } from "../store/userStore.js";
 
-const baseApi = "https://journal-p8ru.onrender.com/api";
+const baseApi = "http://localhost:3000/api";
 
 const api = axios.create({
   baseURL: baseApi,
@@ -19,11 +18,13 @@ api.interceptors.response.use(
     if (!error.response) return Promise.reject(error);
 
     const status = error.response.status;
-
     const isAuthEndpoint =
-      originalRequest?.url?.includes("loginAs") ||
-      originalRequest?.url?.includes("refreshToken") ||
-      originalRequest?.url?.includes("getMyProfile");
+      originalRequest?.url?.includes("/admin/loginAsAdmin") ||
+      originalRequest?.url?.includes("/teacher/loginAsTeacher") ||
+      originalRequest?.url?.includes("/student/loginAsStudent") ||
+      originalRequest?.url?.includes("/auth/student/refreshToken") ||
+      originalRequest?.url?.includes("/auth/teacher/refreshToken") ||
+      originalRequest?.url?.includes("/auth/admin/refreshToken");
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
@@ -31,11 +32,11 @@ api.interceptors.response.use(
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          const role = getUserStoreData().role || "admin";
-          refreshPromise = api.post(`/auth/${role}/refreshToken`);
+          refreshPromise = api.post("/auth/student/refreshToken");
         }
 
         await refreshPromise;
+
         isRefreshing = false;
         refreshPromise = null;
 
@@ -43,6 +44,11 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         isRefreshing = false;
         refreshPromise = null;
+
+        //   try {
+        //     // await api.post("/auth/customer/logout");
+        //   } catch (e) {
+        //   }
         return Promise.reject(refreshErr);
       }
     }
