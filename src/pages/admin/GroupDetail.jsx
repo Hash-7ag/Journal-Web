@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../scripts/api';
 import {
-   FiArrowLeft,
-   FiUsers,
-   FiBook,
-   FiUser,
-   FiHash,
-   FiLayers,
-   FiPlus,
-   FiTrash2,
+   FiArrowLeft, FiUsers, FiBook, FiUser,
+   FiHash, FiLayers, FiPlus, FiTrash2,
 } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
 function GroupDetail() {
    const { id } = useParams();
    const navigate = useNavigate();
-   const { state } = useLocation();
 
    const [group, setGroup] = useState(null);
    const [loading, setLoading] = useState(true);
@@ -37,66 +30,45 @@ function GroupDetail() {
    const [deletingId, setDeletingId] = useState(null);
    const [modalError, setModalError] = useState('');
 
-   // Load all students & subjects for modals
-   useEffect(() => {
-      const loadAll = async () => {
-         try {
-            const [studentsRes, subjectsRes] = await Promise.all([
-               api.get('/admin/getAllStudents'),
-               api.get('/admin/getAllSubjects'),
-            ]);
-            setAllStudents(studentsRes.data.data ?? studentsRes.data);
-            setAllSubjects(subjectsRes.data.data ?? subjectsRes.data);
-         } catch (err) {
-            console.error(err);
-         }
-      };
-      loadAll();
-   }, []);
-
-   const getSubjectDetails = (item) => {
-      const s = item.subject ?? item;
-      const sid = typeof s === 'object' ? s._id : s;
-      const full = allSubjects.find(sub => sub._id === sid);
-      return full ?? s;
-   };
-
-   // Load group
-   useEffect(() => {
-      if (state?.group) {
-         setGroup(state.group);
+   // Qrupu ID ilə yüklə
+   const fetchGroup = async () => {
+      try {
+         setLoading(true);
+         const res = await api.get(`/admin/getGroupById/${id}`);
+         setGroup(res.data);
+      } catch (err) {
+         setError(err.response?.data?.message || err.message || 'Yükləmə xətası');
+      } finally {
          setLoading(false);
-         return;
       }
-      const fetchGroup = async () => {
-         try {
-            setLoading(true);
-            const res = await api.get('/admin/getAllGroups');
-            const found = (res.data.data ?? res.data).find(g => g._id === id);
-            if (!found) throw new Error('Qrup tapılmadı');
-            setGroup(found);
-         } catch (err) {
-            setError(err.response?.data?.message || err.message || 'Yükləmə xətası');
-         } finally {
-            setLoading(false);
-         }
-      };
-      fetchGroup();
-   }, [id, state]);
-
-   const refetchGroup = async () => {
-      const res = await api.get('/admin/getAllGroups');
-      const found = (res.data.data ?? res.data).find(g => g._id === id);
-      setGroup(found);
    };
+
+   // Modal üçün bütün tələbə və fənləri yüklə
+   const fetchAll = async () => {
+      try {
+         const [studentsRes, subjectsRes] = await Promise.all([
+            api.get('/admin/getAllStudents'),
+            api.get('/admin/getAllSubjects'),
+         ]);
+         setAllStudents(studentsRes.data.data ?? studentsRes.data);
+         setAllSubjects(subjectsRes.data.data ?? subjectsRes.data);
+      } catch (err) {
+         console.error(err);
+      }
+   };
+
+   useEffect(() => {
+      fetchGroup();
+      fetchAll();
+   }, [id]);
 
    const handleAddStudent = async () => {
       if (!selectedStudent) return;
       try {
          setAddingStudent(true);
          setModalError('');
-         const res = await api.patch('/admin/addStudentToGroup', { groupId: id, studentId: selectedStudent });
-         setGroup(res.data.data);
+         await api.patch('/admin/addStudentToGroup', { groupId: id, studentId: selectedStudent });
+         await fetchGroup(); // yenilənmiş qrupu gətir
          setStudentModal(false);
          setSelectedStudent('');
       } catch (err) {
@@ -109,8 +81,8 @@ function GroupDetail() {
    const handleDeleteStudent = async (studentId) => {
       try {
          setDeletingId(studentId);
-         const res = await api.patch('/admin/deleteStudentFromGroup', { groupId: id, studentId });
-         setGroup(res.data.data);
+         await api.patch('/admin/deleteStudentFromGroup', { groupId: id, studentId });
+         await fetchGroup();
       } catch (err) {
          console.error(err);
       } finally {
@@ -124,7 +96,7 @@ function GroupDetail() {
          setAddingSubject(true);
          setModalError('');
          await api.patch('/admin/addSubjectToGroup', { groupId: id, subjectId: selectedSubject });
-         await refetchGroup();
+         await fetchGroup();
          setSubjectModal(false);
          setSelectedSubject('');
       } catch (err) {
@@ -138,7 +110,7 @@ function GroupDetail() {
       try {
          setDeletingId(subjectId);
          await api.patch('/admin/deleteSubjectFromGroup', { groupId: id, subjectId });
-         await refetchGroup();
+         await fetchGroup();
       } catch (err) {
          console.error(err);
       } finally {
@@ -169,6 +141,7 @@ function GroupDetail() {
    const students = group.students ?? [];
    const subjects = group.subjects ?? [];
 
+   // Artıq qrupda olan ID-lər — modal filtri üçün
    const existingStudentIds = students.map(item => {
       const s = item.student ?? item;
       return typeof s === 'object' ? s._id : s;
@@ -182,7 +155,7 @@ function GroupDetail() {
    return (
       <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
 
-         {/* Back */}
+         {/* Geri */}
          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-sm opacity-50 hover:opacity-100 mb-6 transition-opacity duration-200"
@@ -235,6 +208,7 @@ function GroupDetail() {
                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                      {students.map((item, index) => {
+                        // getGroupById populate edir: item.student — tam obyekt
                         const s = item.student ?? item;
                         const sid = typeof s === 'object' ? s._id : s;
                         const initials = `${s.name?.charAt(0) ?? ''}${s.surname?.charAt(0) ?? ''}`.toUpperCase();
@@ -246,14 +220,15 @@ function GroupDetail() {
                               <div className="flex flex-col min-w-0 flex-1">
                                  <span className="text-sm font-semibold truncate">{s.name} {s.surname}</span>
                                  {s.email && <span className="text-xs opacity-40 truncate">{s.email}</span>}
-                                 {s.phone && !s.email && <span className="text-xs opacity-40 truncate">{s.phone}</span>}
                               </div>
                               <button
                                  onClick={() => handleDeleteStudent(sid)}
                                  disabled={deletingId === sid}
                                  className="opacity-0 group-hover/card:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 shrink-0 disabled:opacity-50"
                               >
-                                 {deletingId === sid ? <span className="loading loading-spinner loading-xs" /> : <FiTrash2 size={13} />}
+                                 {deletingId === sid
+                                    ? <span className="loading loading-spinner loading-xs" />
+                                    : <FiTrash2 size={13} />}
                               </button>
                            </div>
                         );
@@ -280,22 +255,27 @@ function GroupDetail() {
                ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                      {subjects.map((item, index) => {
-                        const s = getSubjectDetails(item);
-                        const sid = s._id;
-                        const teacher = s.teacherId;
+                        // getGroupById populate edir: item.subject — tam obyekt, item.teacher — müəllim
+                        const s = item.subject ?? item;
+                        const sid = typeof s === 'object' ? s._id : s;
+                        const teacher = item.teacher ?? s.teacherId;
                         return (
                            <div key={sid ?? index} className="group/card bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                               <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#A78BFA] flex items-center justify-center text-white shadow-md shrink-0">
                                     <FiBook size={16} />
                                  </div>
-                                 <span className="text-sm font-semibold leading-tight flex-1">{s.subject ?? s.name ?? '—'}</span>
+                                 <span className="text-sm font-semibold leading-tight flex-1">
+                                    {s.subject ?? s.name ?? '—'}
+                                 </span>
                                  <button
                                     onClick={() => handleDeleteSubject(sid)}
                                     disabled={deletingId === sid}
                                     className="opacity-0 group-hover/card:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 shrink-0 disabled:opacity-50"
                                  >
-                                    {deletingId === sid ? <span className="loading loading-spinner loading-xs" /> : <FiTrash2 size={13} />}
+                                    {deletingId === sid
+                                       ? <span className="loading loading-spinner loading-xs" />
+                                       : <FiTrash2 size={13} />}
                                  </button>
                               </div>
                               {teacher && (
@@ -319,7 +299,7 @@ function GroupDetail() {
             </div>
          )}
 
-         {/* Add Student Modal */}
+         {/* Şagird əlavə et modal */}
          {studentModal && (
             <Modal
                title="Şagird əlavə et"
@@ -347,7 +327,7 @@ function GroupDetail() {
             </Modal>
          )}
 
-         {/* Add Subject Modal */}
+         {/* Fənn əlavə et modal */}
          {subjectModal && (
             <Modal
                title="Fənn əlavə et"
@@ -393,12 +373,14 @@ function TabBtn({ active, onClick, icon, label, count }) {
       <button
          onClick={onClick}
          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${active
-            ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
-            : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
+               ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+               : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
             }`}
       >
          {icon}{label}
-         <span className={`text-xs px-1.5 py-0.5 rounded-lg ${active ? 'bg-white/20' : 'bg-base-300'}`}>{count}</span>
+         <span className={`text-xs px-1.5 py-0.5 rounded-lg ${active ? 'bg-white/20' : 'bg-base-300'}`}>
+            {count}
+         </span>
       </button>
    );
 }

@@ -32,7 +32,7 @@ api.interceptors.response.use(
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          refreshPromise = api.post("/auth/student/refreshToken");
+          refreshPromise = api.post("/auth/admin/refreshToken");
         }
 
         await refreshPromise;
