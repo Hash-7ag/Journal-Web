@@ -95,7 +95,9 @@ function GroupDetail() {
       try {
          setAddingSubject(true);
          setModalError('');
-         await api.patch('/admin/addSubjectToGroup', { groupId: id, subjectId: selectedSubject });
+         const subjectData = allSubjects.find(s => s._id === selectedSubject);
+         const teacherId = subjectData?.teacherId?._id ?? subjectData?.teacherId;
+         await api.patch('/admin/addSubjectToGroup', { groupId: id, subjectId: selectedSubject, teacherId });
          await fetchGroup();
          setSubjectModal(false);
          setSelectedSubject('');
@@ -373,8 +375,8 @@ function TabBtn({ active, onClick, icon, label, count }) {
       <button
          onClick={onClick}
          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${active
-               ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
-               : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
+            ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+            : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
             }`}
       >
          {icon}{label}
