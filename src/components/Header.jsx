@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { FiUsers, FiBook, FiGrid, FiUser, FiHome, FiAward } from 'react-icons/fi'
-import { getUserStoreData } from '../store/userStore.js'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { FiUsers, FiBook, FiGrid, FiUser, FiHome, FiAward, FiLogOut } from 'react-icons/fi'
+import { getUserStoreData, setUserStoreData } from '../store/userStore.js'
+import { capitalize } from '../scripts/capitalize.js'
+import api from '../scripts/api.js'
 
 function Header() {
    const location = useLocation()
+   const navigate = useNavigate()
    const hiddenPaths = ['/', '/login', '/changePassword']
    const isHidden = hiddenPaths.includes(location.pathname)
+
+   const [logoutError, setLogoutError] = useState('');
 
    const [theme, setTheme] = useState(
       () => localStorage.getItem('theme') || 'light'
    )
+   const [logoutModal, setLogoutModal] = useState(false)
+   const [loggingOut, setLoggingOut] = useState(false)
 
    useEffect(() => {
       document.documentElement.setAttribute('data-theme', theme)
@@ -20,6 +27,21 @@ function Header() {
    const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light')
 
    const role = getUserStoreData()?.role
+
+   const handleLogout = async () => {
+      try {
+         setLoggingOut(true);
+         setLogoutError('');
+         await api.post(`/${role}/logoutAs${capitalize(role)}`);
+         setUserStoreData(null);
+         setLogoutModal(false);
+         navigate('/');
+      } catch (err) {
+         setLogoutError(err.response?.data?.message || 'Xəta baş verdi. Yenidən cəhd edin.');
+      } finally {
+         setLoggingOut(false);
+      }
+   };
 
    const adminLinks = [
       { to: '/students', label: 'Şagirdlər', icon: <FiUsers size={15} /> },
@@ -49,66 +71,146 @@ function Header() {
          role === 'teacher' ? '/teacher/home' :
             '/home'
 
-   // Active check — teacher group detail pages share /teacher/groups prefix
    const isActive = (to) => {
-      if (to === location.pathname) return true;
-      if (to !== '/' && location.pathname.startsWith(to) && to !== '/home' && to !== '/student/home' && to !== '/teacher/home') return true;
-      return false;
+      if (to === location.pathname) return true
+      if (to !== '/' && location.pathname.startsWith(to) && to !== '/home' && to !== '/student/home' && to !== '/teacher/home') return true
+      return false
    }
 
    return (
-      <header className="w-full sticky top-0 z-50 bg-base-100/80 backdrop-blur border-b border-base-200 shadow-sm">
-         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <>
+         <header className="w-full sticky top-0 z-50 bg-base-100/80 backdrop-blur border-b border-base-200 shadow-sm">
+            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
-            <Link to="/" className="flex items-center gap-2">
-               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white font-bold text-sm shadow-md">
-                  EC
-               </div>
-               <span className="font-semibold text-sm hidden sm:block opacity-80">
-                  Elektron Cədvəl
-               </span>
-            </Link>
+               {/* Logo */}
+               <Link to="/" className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                     EC
+                  </div>
+                  <span className="font-semibold text-sm hidden sm:block opacity-80">
+                     Elektron Cədvəl
+                  </span>
+               </Link>
 
-            {!isHidden && (
-               <nav className="flex items-center gap-1">
-                  {navLinks.map(({ to, label, icon }) => (
-                     <Link
-                        key={to}
-                        to={to}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
-                           ${isActive(to)
-                              ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
-                              : 'opacity-60 hover:opacity-100 hover:bg-base-200'
-                           }`}
-                     >
-                        {icon}
-                        <span className="hidden md:block">{label}</span>
-                     </Link>
-                  ))}
-               </nav>
-            )}
-
-            <div className="flex items-center gap-3">
-               <label className="swap swap-rotate cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-                  <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
-                  <svg className="swap-on h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                     <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-                  </svg>
-                  <svg className="swap-off h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                     <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-                  </svg>
-               </label>
-
+               {/* Nav */}
                {!isHidden && (
-                  <Link to={homeLink}>
-                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer hover:shadow-lg transition-shadow">
-                        {role?.charAt(0).toUpperCase()}
-                     </div>
-                  </Link>
+                  <nav className="flex items-center gap-1">
+                     {navLinks.map(({ to, label, icon }) => (
+                        <Link
+                           key={to}
+                           to={to}
+                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200
+                              ${isActive(to)
+                                 ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+                                 : 'opacity-60 hover:opacity-100 hover:bg-base-200'
+                              }`}
+                        >
+                           {icon}
+                           <span className="hidden md:block">{label}</span>
+                        </Link>
+                     ))}
+                  </nav>
                )}
+
+               {/* Right side */}
+               <div className="flex items-center gap-2">
+
+                  {/* Theme toggle */}
+                  <label className="swap swap-rotate cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                     <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
+                     <svg className="swap-on h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
+                     </svg>
+                     <svg className="swap-off h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
+                     </svg>
+                  </label>
+
+                  {!isHidden && (
+                     <>
+                        {/* Avatar */}
+                        <Link to={homeLink}>
+                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer hover:shadow-lg transition-shadow">
+                              {role?.charAt(0).toUpperCase()}
+                           </div>
+                        </Link>
+
+                        {/* Logout button */}
+                        <button
+                           onClick={() => setLogoutModal(true)}
+                           className="w-8 h-8 rounded-full border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-400 dark:hover:bg-red-900/20 transition-all duration-200"
+                        >
+                           <FiLogOut size={14} />
+                        </button>
+                     </>
+                  )}
+               </div>
             </div>
-         </div>
-      </header>
+         </header>
+
+         {/* Logout confirm modal */}
+         {logoutModal && (
+            <div className="modal modal-open z-50" role="dialog">
+               <div className="modal-box rounded-2xl border border-base-200 shadow-xl flex flex-col gap-5 p-8 max-w-sm">
+
+                  {/* Icon */}
+                  <div className="flex flex-col items-center gap-2 text-center">
+                     <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 flex items-center justify-center text-red-400 mb-1">
+                        <FiLogOut size={22} />
+                     </div>
+                     <h3 className="text-lg font-bold">Çıxmaq istəyirsiniz?</h3>
+                     <p className="text-xs opacity-40 leading-relaxed">
+                        Hesabınızdan çıxacaqsınız. Yenidən daxil olmaq üçün login lazım olacaq.
+                     </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                     <button
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className="flex-1 py-2.5 rounded-xl bg-red-400 hover:bg-red-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-60"
+                     >
+                        {loggingOut
+                           ? <span className="loading loading-spinner loading-xs" />
+                           : <><FiLogOut size={14} /> Çıx</>
+                        }
+                     </button>
+                     <button
+                        onClick={() => { setLogoutModal(false); setLogoutError(''); }}
+                        className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
+                     >
+                        Ləğv et
+                     </button>
+                  </div>
+
+                  {/* Server error + force logout */}
+                  {logoutError && (
+                     <div className="flex flex-col gap-2">
+                        <div role="alert" className="alert alert-error rounded-xl text-xs py-2">
+                           <span>{logoutError}</span>
+                        </div>
+                        <button
+                           onClick={() => {
+                              // принудительный выход — чистим всё на фронте даже без ответа сервера
+                              setUserStoreData(null);
+                              setLogoutModal(false);
+                              setLogoutError('');
+                              navigate('/');
+                           }}
+                           className="w-full py-2 rounded-xl border border-red-200 text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                        >
+                           Məcburi çıx (serverdən asılı olmayaraq)
+                        </button>
+                     </div>
+                  )}
+
+               </div>
+               {/* backdrop */}
+               <div className="modal-backdrop" onClick={() => setLogoutModal(false)} />
+            </div>
+         )}
+      </>
    )
 }
 
