@@ -17,7 +17,7 @@ function Students() {
    const [page, setPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
    const [total, setTotal] = useState(0);
-   const pageSize = 5;
+   const pageSize = 10;
 
    const fetchStudents = async (pageNum = 1) => {
       try {
@@ -183,8 +183,8 @@ function Students() {
                      key={p}
                      onClick={() => handlePageChange(p)}
                      className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all duration-200 ${p === page
-                           ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
-                           : 'border border-base-200 opacity-50 hover:opacity-100 hover:bg-base-200'
+                        ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+                        : 'border border-base-200 opacity-50 hover:opacity-100 hover:bg-base-200'
                         }`}
                   >
                      {p}
