@@ -2,17 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { capitalize } from '../../scripts/capitalize.js'
 import api from '../../scripts/api.js';
 import { FiUser, FiPhone, FiMail, FiShield } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 function Home() {
    const [userData, setUserData] = useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
+   const navigate = useNavigate();
 
    useEffect(() => {
       const fetchData = async () => {
          try {
             setLoading(true);
             const response = await api.get(`/admin/getMyProfile`);
+            if (!response.data.isChangePassword) {
+               navigate('/changePassword');
+               return;
+            }
             setUserData(response.data);
          } catch (err) {
             console.error('Yüklənmə zamanı xəta:', err);

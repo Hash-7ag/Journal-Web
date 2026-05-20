@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiUsers, FiBook, FiGrid, FiUser, FiHome, FiAward, FiLogOut } from 'react-icons/fi'
-import { getUserStoreData, setUserStoreData } from '../store/userStore.js'
+import { getUserStoreData, clearUserStoreData } from '../store/userStore.js';
 import { capitalize } from '../scripts/capitalize.js'
 import api from '../scripts/api.js'
 
@@ -38,7 +38,7 @@ function Header() {
          setLoggingOut(true);
          setLogoutError('');
          await api.post(`/${role}/logoutAs${capitalize(role)}`);
-         setUserStoreData(null);
+         clearUserStoreData(); // ✅ чистит и local и session
          setLogoutModal(false);
          navigate('/');
       } catch (err) {
@@ -197,8 +197,7 @@ function Header() {
                         </div>
                         <button
                            onClick={() => {
-                              // принудительный выход — чистим всё на фронте даже без ответа сервера
-                              setUserStoreData(null);
+                              clearUserStoreData();
                               setLogoutModal(false);
                               setLogoutError('');
                               navigate('/');

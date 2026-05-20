@@ -394,7 +394,7 @@ function TeacherGroupDetail() {
                         <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
                         {isLimited && (
                            <div className="flex items-center gap-1 text-red-400 text-xs shrink-0">
-                              <FiAlertCircle size={13} /><span className="hidden xl:block">Buraxılmayıb</span>
+                              <FiAlertCircle size={13} /><span className="hidden xl:block">Şagird Limitdədir</span>
                            </div>
                         )}
                         <div className="flex flex-col items-center shrink-0 min-w-[44px]">
@@ -515,7 +515,6 @@ function TeacherGroupDetail() {
                                     </td>
 
                                     {/* Existing days */}
-                                    {/* Existing days */}
                                     {days.map(day => {
                                        const att = getAttendenceForStudent(dayMap[day], sid);
                                        return (
@@ -541,8 +540,8 @@ function TeacherGroupDetail() {
                                           <button
                                              onClick={() => setNewAttStudents(prev => ({ ...prev, [sid]: !prev[sid] }))}
                                              className={`w-8 h-8 rounded-xl font-bold text-sm text-white transition-all duration-200 shadow-sm ${newAttStudents[sid]
-                                                   ? 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-                                                   : 'bg-red-500 hover:bg-red-600 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
+                                                ? 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
+                                                : 'bg-red-500 hover:bg-red-600 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
                                                 }`}
                                           >
                                              {newAttStudents[sid] ? '+' : 'q'}

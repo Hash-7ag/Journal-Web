@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { capitalize } from '../../scripts/capitalize.js'
 import api from '../../scripts/api';
-import { getUserStoreData } from '../../store/userStore.js';
+import { getUserStoreData, persistUserToLocal } from '../../store/userStore.js';
 import { FiUser, FiLock, FiArrowRight, FiAlertCircle } from 'react-icons/fi'
 
 function Login() {
@@ -53,6 +53,10 @@ function Login() {
       try {
          setLoading(true);
          await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
+
+         // ✅ Переносим роль из sessionStorage в localStorage
+         persistUserToLocal(role);
+
          setSuccess('Uğurla daxil oldunuz!');
          const profileRes = await api.get(`/${role}/getMyProfile`);
          const { isChangePassword } = profileRes.data;
@@ -64,7 +68,7 @@ function Login() {
       } finally {
          setLoading(false);
       }
-   }
+   };
 
    const changeValues = (e) => {
       const { name, value } = e.target;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../scripts/api.js';
-import { FiPlus, FiUser, FiMail, FiPhone, FiLock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiPlus, FiUser, FiMail, FiPhone, FiLock, FiChevronLeft, FiChevronRight, FiEye, FiEyeOff } from 'react-icons/fi';
+import { formatPhone, phoneToRaw } from '../../scripts/usePhoneInput.js';
 
 function Students() {
    const [students, setStudents] = useState([]);
@@ -12,12 +13,12 @@ function Students() {
       username: '', password: '', phoneNumber: '', email: '',
    });
    const [submitting, setSubmitting] = useState(false);
+   const [showPassword, setShowPassword] = useState(false);
 
-   // Pagination
    const [page, setPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
    const [total, setTotal] = useState(0);
-   const pageSize = 10;
+   const pageSize = 5;
 
    const fetchStudents = async (pageNum = 1) => {
       try {
@@ -27,16 +28,13 @@ function Students() {
          setTotalPages(response.data.totalPages);
          setTotal(response.data.total);
       } catch (err) {
-         console.error('Yüklənmə zamanı xəta:', err);
          setError(err.message || 'yükləmə xətası');
       } finally {
          setLoading(false);
       }
    };
 
-   useEffect(() => {
-      fetchStudents(page);
-   }, [page]);
+   useEffect(() => { fetchStudents(page); }, [page]);
 
    const handlePageChange = (newPage) => {
       if (newPage < 1 || newPage > totalPages) return;
@@ -45,7 +43,11 @@ function Students() {
 
    const handleInputChange = (e) => {
       const { name, value } = e.target;
-      setFormData(prev => ({ ...prev, [name]: value }));
+      if (name === 'phoneNumber') {
+         setFormData(prev => ({ ...prev, phoneNumber: formatPhone(value) }));
+      } else {
+         setFormData(prev => ({ ...prev, [name]: value }));
+      }
    };
 
    const handleAddStudent = async () => {
@@ -57,11 +59,14 @@ function Students() {
       }
       try {
          setSubmitting(true);
-         await api.post('/admin/createStudent', formData);
+         await api.post('/admin/createStudent', {
+            ...formData,
+            phoneNumber: phoneToRaw(formData.phoneNumber),
+         });
          setIsModalOpen(false);
          setFormData({ name: '', surname: '', fatherName: '', username: '', password: '', phoneNumber: '', email: '' });
+         setShowPassword(false);
          setError('');
-         // перезагружаем текущую страницу
          fetchStudents(page);
       } catch (err) {
          setError(err.response?.data?.message || 'Failed to create student');
@@ -76,15 +81,21 @@ function Students() {
       'from-[#A78BFA] to-[#60A5FA]', 'from-[#3B82F6] to-[#8B5CF6]',
    ];
 
-   const fields = [
-      { name: 'name', label: 'Ad', type: 'text', placeholder: 'Məs: Əli', icon: <FiUser size={14} /> },
-      { name: 'surname', label: 'Soyad', type: 'text', placeholder: 'Məs: Məmmədov', icon: <FiUser size={14} /> },
-      { name: 'fatherName', label: 'Ata adı', type: 'text', placeholder: 'Məs: Hüseyn', icon: <FiUser size={14} /> },
-      { name: 'username', label: 'İstifadəçi adı', type: 'text', placeholder: 'username', icon: <FiUser size={14} /> },
-      { name: 'password', label: 'Şifrə', type: 'password', placeholder: '••••••••', icon: <FiLock size={14} /> },
-      { name: 'email', label: 'Email', type: 'email', placeholder: 'email@mail.com', icon: <FiMail size={14} /> },
-      { name: 'phoneNumber', label: 'Telefon', type: 'tel', placeholder: '+994 xx xxx xx xx', icon: <FiPhone size={14} /> },
+   const textFields = [
+      { name: 'name', label: 'Ad', type: 'text', placeholder: 'Məs: Əli' },
+      { name: 'surname', label: 'Soyad', type: 'text', placeholder: 'Məs: Məmmədov' },
+      { name: 'fatherName', label: 'Ata adı', type: 'text', placeholder: 'Məs: Hüseyn' },
+      { name: 'username', label: 'İstifadəçi adı', type: 'text', placeholder: 'username' },
+      { name: 'email', label: 'Email', type: 'email', placeholder: 'email@mail.com' },
    ];
+
+   if (loading && students.length === 0) {
+      return (
+         <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+            <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
+         </div>
+      );
+   }
 
    return (
       <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
@@ -98,7 +109,7 @@ function Students() {
                </p>
             </div>
             <button
-               onClick={() => setIsModalOpen(true)}
+               onClick={() => { setIsModalOpen(true); setShowPassword(false); setError(''); }}
                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
             >
                <FiPlus size={16} />
@@ -116,7 +127,6 @@ function Students() {
          ) : (
             <div className="flex flex-col gap-3">
                {students.map((student, index) => {
-                  // глобальный индекс для цвета чтобы не сбрасывался при смене страницы
                   const globalIndex = (page - 1) * pageSize + index;
                   const colorClass = studentColors[globalIndex % studentColors.length];
                   const initials = `${student.name?.charAt(0) || ''}${student.surname?.charAt(0) || ''}`.toUpperCase();
@@ -167,8 +177,6 @@ function Students() {
          {/* Pagination */}
          {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
-
-               {/* Prev */}
                <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={page === 1}
@@ -176,8 +184,6 @@ function Students() {
                >
                   <FiChevronLeft size={16} />
                </button>
-
-               {/* Page numbers */}
                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                   <button
                      key={p}
@@ -190,8 +196,6 @@ function Students() {
                      {p}
                   </button>
                ))}
-
-               {/* Next */}
                <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={page === totalPages}
@@ -206,6 +210,8 @@ function Students() {
          {isModalOpen && (
             <div className="modal modal-open" role="dialog">
                <div className="modal-box rounded-2xl border border-base-200 shadow-xl flex flex-col gap-5 p-8 max-w-lg">
+
+                  {/* Modal header */}
                   <div className="flex flex-col items-center gap-1 text-center">
                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md mb-1">
                         <FiUser size={18} />
@@ -213,36 +219,93 @@ function Students() {
                      <h3 className="text-lg font-bold">Yeni şagird</h3>
                      <p className="text-xs opacity-40">Məlumatları doldurun</p>
                   </div>
+
                   <div className="grid grid-cols-2 gap-3 w-full">
-                     {fields.map(({ name, label, type, placeholder, icon }) => (
+
+                     {/* Text fields */}
+                     {textFields.map(({ name, label, type, placeholder }) => (
                         <div key={name} className="flex flex-col gap-1">
                            <label className="text-xs font-medium opacity-50 ml-1">{label}</label>
                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30">{icon}</span>
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30">
+                                 {name === 'email' ? <FiMail size={14} /> : <FiUser size={14} />}
+                              </span>
                               <input
-                                 type={type} name={name} value={formData[name]}
-                                 onChange={handleInputChange} placeholder={placeholder}
+                                 type={type}
+                                 name={name}
+                                 value={formData[name]}
+                                 onChange={handleInputChange}
+                                 placeholder={placeholder}
                                  className="input w-full pl-8 pr-3 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
                               />
                            </div>
                         </div>
                      ))}
+
+                     {/* Password */}
+                     <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium opacity-50 ml-1">Şifrə</label>
+                        <div className="relative">
+                           <FiLock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
+                           <input
+                              type={showPassword ? 'text' : 'password'}
+                              name="password"
+                              value={formData.password}
+                              onChange={handleInputChange}
+                              placeholder="••••••••"
+                              className="input w-full pl-8 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                           />
+                           <button
+                              type="button"
+                              onClick={() => setShowPassword(p => !p)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-70 transition-opacity"
+                           >
+                              {showPassword ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                           </button>
+                        </div>
+                     </div>
+
+                     {/* Phone */}
+                     <div className="flex flex-col gap-1 col-span-2">
+                        <label className="text-xs font-medium opacity-50 ml-1">Telefon</label>
+                        <div className="relative">
+                           <FiPhone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
+                           <input
+                              type="tel"
+                              name="phoneNumber"
+                              value={formData.phoneNumber || '+994 '}
+                              onChange={handleInputChange}
+                              onFocus={() => {
+                                 if (!formData.phoneNumber) {
+                                    setFormData(prev => ({ ...prev, phoneNumber: '+994 ' }));
+                                 }
+                              }}
+                              placeholder="+994 55 428 23 44"
+                              className="input w-full pl-8 pr-3 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                           />
+                        </div>
+                     </div>
+
                   </div>
+
                   {error && <span className="text-red-400 text-xs text-center">{error}</span>}
+
                   <div className="flex gap-3 pt-1">
                      <button
-                        onClick={handleAddStudent} disabled={submitting}
+                        onClick={handleAddStudent}
+                        disabled={submitting}
                         className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-60"
                      >
                         {submitting ? <span className="loading loading-spinner loading-xs" /> : 'Əlavə et'}
                      </button>
                      <button
-                        onClick={() => { setIsModalOpen(false); setError(''); }}
+                        onClick={() => { setIsModalOpen(false); setError(''); setShowPassword(false); }}
                         className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
                      >
                         Ləğv et
                      </button>
                   </div>
+
                </div>
             </div>
          )}
