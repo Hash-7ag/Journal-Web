@@ -3,7 +3,7 @@ import { capitalize } from '../../scripts/capitalize.js';
 import api from '../../scripts/api';
 import { getUserStoreData } from '../../store/userStore.js';
 import { useNavigate } from 'react-router-dom';
-import { FiLock, FiAlertCircle, FiArrowRight, FiShield } from 'react-icons/fi';
+import { FiLock, FiAlertCircle, FiArrowRight, FiShield, FiEye, FiEyeOff } from 'react-icons/fi';
 
 function ChangePassword() {
    const navigate = useNavigate();
@@ -12,6 +12,13 @@ function ChangePassword() {
    const [frontError, setFrontError] = useState('');
    const [serverError, setServerError] = useState('');
    const [success, setSuccess] = useState('');
+
+   const [showPasswords, setShowPasswords] = useState({
+      oldPassword: false,
+      newPassword: false,
+      confirmPassword: false,
+   });
+   const toggleShow = (name) => setShowPasswords(prev => ({ ...prev, [name]: !prev[name] }));
 
    const [formValues, setFormValues] = useState({
       oldPassword: '',
@@ -102,19 +109,24 @@ function ChangePassword() {
                   <div className="flex flex-col gap-3">
                      {fields.map(({ name, label, value, onChange }) => (
                         <div key={name} className="flex flex-col gap-1">
-                           <label className="text-xs font-medium opacity-60 ml-1">
-                              {label}
-                           </label>
+                           <label className="text-xs font-medium opacity-60 ml-1">{label}</label>
                            <div className="relative">
                               <FiLock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
                               <input
-                                 type="password"
+                                 type={showPasswords[name] ? 'text' : 'password'}
                                  name={name}
                                  value={value}
                                  onChange={onChange}
                                  placeholder="••••••••"
-                                 className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
+                                 className="input w-full pl-9 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
                               />
+                              <button
+                                 type="button"
+                                 onClick={() => toggleShow(name)}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-70 transition-opacity"
+                              >
+                                 {showPasswords[name] ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                              </button>
                            </div>
                         </div>
                      ))}

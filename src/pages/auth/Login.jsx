@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { capitalize } from '../../scripts/capitalize.js'
 import api from '../../scripts/api';
 import { getUserStoreData, persistUserToLocal } from '../../store/userStore.js';
-import { FiUser, FiLock, FiArrowRight, FiAlertCircle } from 'react-icons/fi'
+import { FiUser, FiLock, FiArrowRight, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi'
 
 function Login() {
    const navigate = useNavigate();
@@ -26,6 +26,7 @@ function Login() {
    const [frontError, setFrontError] = useState('');
    const [serverError, setServerError] = useState('');
    const [success, setSuccess] = useState('');
+   const [showPassword, setShowPassword] = useState(false);
 
    const roleColors = {
       student: 'from-[#3B82F6] to-[#60A5FA]',
@@ -126,19 +127,24 @@ function Login() {
 
                      {/* Password */}
                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium opacity-60 ml-1">
-                           Şifrə
-                        </label>
+                        <label className="text-xs font-medium opacity-60 ml-1">Şifrə</label>
                         <div className="relative">
                            <FiLock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
                            <input
                               name="password"
                               value={formValues.password}
                               onChange={(e) => changeValues(e)}
-                              type="password"
+                              type={showPassword ? 'text' : 'password'}
                               placeholder="••••••••"
-                              className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
+                              className="input w-full pl-9 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
                            />
+                           <button
+                              type="button"
+                              onClick={() => setShowPassword(p => !p)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-70 transition-opacity"
+                           >
+                              {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+                           </button>
                         </div>
                      </div>
 
