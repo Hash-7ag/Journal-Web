@@ -367,7 +367,7 @@ function TeacherGroupDetail() {
                         </div>
                         <div className="w-36 shrink-0 min-w-0">
                            <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
-                           {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName} oğlu</div>}
+                           {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName}</div>}
                         </div>
                         <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
                         <div className="flex-1 flex flex-wrap items-center gap-3 lg:gap-5">

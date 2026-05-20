@@ -124,7 +124,7 @@ function Teachers() {
                         </div>
                         <div className="flex-1 min-w-0">
                            <div className="font-semibold text-sm truncate">{teacher.name} {teacher.surname}</div>
-                           <div className="text-xs opacity-40 mt-0.5 truncate">{teacher.fatherName && `${teacher.fatherName} oğlu`}</div>
+                           <div className="text-xs opacity-40 mt-0.5 truncate">{teacher.fatherName && `${teacher.fatherName}`}</div>
                         </div>
                         <div className="hidden md:flex items-center gap-4 shrink-0">
                            {teacher.email && <div className="flex items-center gap-1.5 text-xs opacity-40"><FiMail size={12} />{teacher.email}</div>}

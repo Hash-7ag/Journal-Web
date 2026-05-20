@@ -141,7 +141,7 @@ function Students() {
                         <div className="flex-1 min-w-0">
                            <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
                            <div className="text-xs opacity-40 mt-0.5 truncate">
-                              {student.fatherName && `${student.fatherName} oğlu`}
+                              {student.fatherName && `${student.fatherName}`}
                            </div>
                         </div>
                         <div className="hidden md:flex items-center gap-4 shrink-0">
