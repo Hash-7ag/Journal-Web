@@ -73,6 +73,11 @@ function Groups() {
          setError(`Zəhmət olmasa doldurun: ${missing.join(', ')}`);
          return;
       }
+
+      if (String(formData.groupShifr).length !== 9) {
+         setError('Qrup şifrəsi 9 rəqəmdən ibarət olmalıdır');
+         return;
+      }
       try {
          setSubmitting(true);
          const payload = {
@@ -82,8 +87,12 @@ function Groups() {
             subjects: formData.subjects,
             students: formData.students.map(id => ({ student: String(id) })),
          };
-         const response = await api.post('/admin/createGroup', payload);
-         setGroups(prev => [response.data, ...prev]);
+         await api.post('/admin/createGroup', payload);
+
+         // Bütün grupları yeniləyirik və kart özü yenilənir
+         const groupsRes = await api.get('/admin/getAllGroups');
+         setGroups(groupsRes.data.data);
+
          setIsModalOpen(false);
          setFormData({ profession: '', groupNumber: '', groupShifr: '', subjects: [], students: [] });
          setSelectedSubjectIds([]);
@@ -230,7 +239,11 @@ function Groups() {
                               type="number"
                               name="groupShifr"
                               value={formData.groupShifr}
-                              onChange={handleInputChange}
+                              onChange={(e) => {
+                                 if (e.target.value.length <= 9) {
+                                    handleInputChange(e);
+                                 }
+                              }}
                               className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
                               placeholder="Məs: 2401"
                            />

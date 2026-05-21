@@ -30,7 +30,7 @@ api.interceptors.response.use(
         if (!isRefreshing) {
           isRefreshing = true;
 
-          // ✅ Берём роль из localStorage
+          // LocalStorage dən rolu alırıq
           const role = getUserStoreData()?.role || "admin";
           refreshPromise = api.post(`/auth/${role}/refreshToken`);
         }

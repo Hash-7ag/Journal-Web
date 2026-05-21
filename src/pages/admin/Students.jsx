@@ -280,7 +280,7 @@ function Students() {
                                     setFormData(prev => ({ ...prev, phoneNumber: '+994 ' }));
                                  }
                               }}
-                              placeholder="+994 55 428 23 44"
+                              placeholder="+994 xx xxx xx xx"
                               className="input w-full pl-8 pr-3 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
                            />
                         </div>

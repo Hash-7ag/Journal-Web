@@ -89,8 +89,11 @@ function Header() {
 
                {/* Logo */}
                <Link to="/" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white font-bold text-sm shadow-md">
-                     EC
+                  <div className="relative w-8 h-8 shrink-0">
+                     <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
+                     <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                        EC
+                     </div>
                   </div>
                   <span className="font-semibold text-sm hidden sm:block opacity-80">
                      Elektron Cədvəl
@@ -143,7 +146,7 @@ function Header() {
                         {/* Logout button */}
                         <button
                            onClick={() => setLogoutModal(true)}
-                           className="w-8 h-8 rounded-full border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-400 dark:hover:bg-red-900/20 transition-all duration-200"
+                           className="w-8 h-8 rounded-full border border-base-400 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-400 dark:hover:bg-red-900/20 transition-all duration-200"
                         >
                            <FiLogOut size={14} />
                         </button>

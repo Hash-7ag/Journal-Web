@@ -30,6 +30,7 @@ function TeacherGroupDetail() {
    const navigate = useNavigate();
 
    const [students, setStudents] = useState([]);
+   const [studentModal, setStudentModal] = useState(null);
    const [grades, setGrades] = useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
@@ -361,48 +362,69 @@ function TeacherGroupDetail() {
                   const isLimited = getStudentGrade(sid, 'attendence')?.limited;
                   const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
                   return (
-                     <div key={sid} className="bg-base-100 border border-base-200 rounded-2xl shadow-sm px-5 py-4 flex flex-wrap items-center gap-4 hover:shadow-md transition-all duration-200">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0`}>
-                           {initials || <FiUser size={14} />}
-                        </div>
-                        <div className="w-36 shrink-0 min-w-0">
-                           <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
-                           {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName}</div>}
-                        </div>
-                        <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
-                        <div className="flex-1 flex flex-wrap items-center gap-3 lg:gap-5">
-                           {gradeColumns.map(col => {
-                              const g = getStudentGrade(sid, col.key);
-                              const hasGrade = g?.grade?.grade != null;
-                              const canAdd = !hasGrade && col.key !== 'attendence';
-                              return (
-                                 <div key={col.key} className="flex flex-col items-center gap-1 min-w-[52px]">
-                                    <span className="text-xs opacity-30">{col.label}</span>
-                                    {hasGrade ? (
-                                       <GradeCell value={g.grade.grade} max={col.max} color={col.key === 'attendence' && isLimited ? 'text-red-400' : col.color} />
-                                    ) : canAdd ? (
-                                       <button onClick={() => openGradeModal(col.key, sid)} className="w-6 h-6 rounded-lg border border-dashed border-base-300 flex items-center justify-center opacity-30 hover:opacity-70 hover:border-[#8B5CF6] transition-all duration-200">
-                                          <FiPlus size={11} />
-                                       </button>
-                                    ) : (
-                                       <span className="text-xs opacity-20">—/{col.max}</span>
-                                    )}
-                                 </div>
-                              );
-                           })}
-                        </div>
-                        <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
+                     <div key={sid} className={`bg-base-100 border rounded-2xl shadow-sm px-5 py-4 flex flex-wrap items-center gap-2 hover:shadow-md transition-all duration-200 ${isLimited
+                        ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10'
+                        : 'border-base-200'
+                        }`}
+                     >
                         {isLimited && (
-                           <div className="flex items-center gap-1 text-red-400 text-xs shrink-0">
-                              <FiAlertCircle size={13} /><span className="hidden xl:block">Şagird Limitdədir</span>
+                           <div className="flex items-center gap-1.5 shrink-0 mt-2">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+                                 <FiAlertCircle size={16} className="text-red-500 dark:text-red-400" />
+                                 <span className="hidden xl:block text-xs font-semibold text-red-500 dark:text-red-400">
+                                    Bu Şagird Limitdədir
+                                 </span>
+                              </div>
                            </div>
                         )}
-                        <div className="flex flex-col items-center shrink-0 min-w-[44px]">
-                           <span className="text-xs opacity-30">Yekun</span>
-                           <span className={`text-xl font-bold ${totalColor(total)}`}>{total != null ? total : '—'}</span>
-                           <span className="text-xs opacity-20">/100</span>
+                        <div className='w-full flex flex-wrap items-center gap-4'>
+                           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0`}>
+                              {initials || <FiUser size={14} />}
+                           </div>
+                           <div className="w-36 shrink-0 min-w-0">
+                              <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
+                              {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName}</div>}
+                           </div>
+                           {/* Info button */}
+                           <button
+                              onClick={() => setStudentModal(student)}
+                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
+                           >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                              </svg>
+                           </button>
+                           <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
+                           <div className="flex-1 flex flex-wrap items-center gap-3 lg:gap-5">
+                              {gradeColumns.map(col => {
+                                 const g = getStudentGrade(sid, col.key);
+                                 const hasGrade = g?.grade?.grade != null;
+                                 const canAdd = !hasGrade && col.key !== 'attendence';
+                                 return (
+                                    <div key={col.key} className="flex flex-col items-center gap-1 min-w-[52px]">
+                                       <span className="text-xs opacity-30">{col.label}</span>
+                                       {hasGrade ? (
+                                          <GradeCell value={g.grade.grade} max={col.max} color={col.key === 'attendence' && isLimited ? 'text-red-400' : col.color} />
+                                       ) : canAdd ? (
+                                          <button onClick={() => openGradeModal(col.key, sid)} className="w-6 h-6 rounded-lg border border-dashed border-base-300 flex items-center justify-center opacity-30 hover:opacity-70 hover:border-[#8B5CF6] transition-all duration-200">
+                                             <FiPlus size={11} />
+                                          </button>
+                                       ) : (
+                                          <span className="text-xs opacity-20">—/{col.max}</span>
+                                       )}
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                           <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
+                           <div className="flex flex-col items-center shrink-0 min-w-[44px]">
+                              <span className="text-xs opacity-30">Yekun</span>
+                              <span className={`text-xl font-bold ${totalColor(total)}`}>{total != null ? total : '—'}</span>
+                              <span className="text-xs opacity-20">/100</span>
+                           </div>
                         </div>
                      </div>
+
                   );
                })}
             </div>
@@ -503,7 +525,7 @@ function TeacherGroupDetail() {
                               return (
                                  <tr key={sid} className="border-b border-base-200 last:border-0 hover:bg-base-200/30 transition-colors">
                                     {/* Sticky student name */}
-                                    <td className="sticky left-0 z-10 bg-base-100 px-4 py-2.5 border-r border-base-200">
+                                    <td className="sticky left-0 z-10 bg-base-100 px-4 py-2.5 border-r border-base-200 flex flex-wrap items-center justify-between">
                                        <div className="flex items-center gap-2.5">
                                           <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0`}>
                                              {initials || <FiUser size={11} />}
@@ -512,6 +534,15 @@ function TeacherGroupDetail() {
                                              {student.name} {student.surname}
                                           </span>
                                        </div>
+                                       {/* Info button */}
+                                       <button
+                                          onClick={() => setStudentModal(student)}
+                                          className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
+                                       >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                             <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                                          </svg>
+                                       </button>
                                     </td>
 
                                     {/* Existing days */}
@@ -622,6 +653,77 @@ function TeacherGroupDetail() {
                      </button>
                   </div>
                </div>
+            </div>
+         )}
+         {/* Student info modal */}
+         {studentModal && (
+            <div className="modal modal-open z-50" role="dialog">
+               <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-sm overflow-hidden">
+
+                  <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
+
+                  <div className="p-6 flex flex-col gap-5">
+
+                     {/* Header */}
+                     <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#60A5FA] flex items-center justify-center text-white font-bold text-base shadow-md shrink-0">
+                              {studentModal.name?.charAt(0)}{studentModal.surname?.charAt(0)}
+                           </div>
+                           <div>
+                              <div className="font-bold text-base">
+                                 {studentModal.name} {studentModal.surname}
+                              </div>
+                              <div className="text-xs opacity-40">{studentModal.fatherName} oğlu</div>
+                           </div>
+                        </div>
+                        <button
+                           onClick={() => setStudentModal(null)}
+                           className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
+                        >
+                           <FiX size={15} />
+                        </button>
+                     </div>
+
+                     {/* Info fields */}
+                     <div className="bg-base-200/50 rounded-xl p-4 border border-base-200 flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                           <span className="text-xs opacity-40 flex items-center gap-1">
+                              <FiUser size={11} /> Ad Soyad Ata adı
+                           </span>
+                           <span className="text-sm font-semibold">
+                              {studentModal.name} {studentModal.surname} {studentModal.fatherName}
+                           </span>
+                        </div>
+                        <div className="w-full h-px bg-base-200" />
+                        <div className="flex flex-col gap-1">
+                           <span className="text-xs opacity-40 flex items-center gap-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                              </svg>
+                              Telefon
+                           </span>
+                           <span className="text-sm font-semibold">
+                              {studentModal.phoneNumber || '—'}
+                           </span>
+                        </div>
+                        <div className="w-full h-px bg-base-200" />
+                        <div className="flex flex-col gap-1">
+                           <span className="text-xs opacity-40 flex items-center gap-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
+                              </svg>
+                              Email
+                           </span>
+                           <span className="text-sm font-semibold">
+                              {studentModal.email || '—'}
+                           </span>
+                        </div>
+                     </div>
+
+                  </div>
+               </div>
+               <div className="modal-backdrop" onClick={() => setStudentModal(null)} />
             </div>
          )}
       </div>

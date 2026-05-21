@@ -26,7 +26,6 @@ const homeRoutes = {
    teacher: '/teacher/home',
 };
 
-// "/" и "/login" — если уже залогинен редирект на home
 function PublicGuard({ children }) {
    const { role } = getUserStoreData();
    const ls = localStorage.getItem("app_user_role");
@@ -34,7 +33,6 @@ function PublicGuard({ children }) {
    return children;
 }
 
-// Приватные страницы — проверяем localStorage и роль
 function PrivateGuard({ children, allowedRole }) {
    const ls = localStorage.getItem("app_user_role");
    if (!ls) return <Navigate to="/" replace />;
@@ -42,7 +40,6 @@ function PrivateGuard({ children, allowedRole }) {
    const { role } = getUserStoreData();
    if (!role) return <Navigate to="/" replace />;
 
-   // если роль не совпадает — редирект на свой home
    if (allowedRole && role !== allowedRole) {
       return <Navigate to={homeRoutes[role] ?? '/'} replace />;
    }
@@ -50,7 +47,6 @@ function PrivateGuard({ children, allowedRole }) {
    return children;
 }
 
-// changePassword — берет роль из localStorage
 function ChangePasswordGuard({ children }) {
    const ls = localStorage.getItem("app_user_role");
    if (!ls) return <Navigate to="/" replace />;
@@ -69,7 +65,6 @@ function ChangePasswordGuard({ children }) {
    useEffect(() => {
       api.get(`/${role}/getMyProfile`)
          .then(res => {
-            // если пароль уже изменён — на home
             if (res.data.isChangePassword) {
                setStatus('redirect');
             } else {
@@ -77,7 +72,6 @@ function ChangePasswordGuard({ children }) {
             }
          })
          .catch(() => {
-            // если ошибка — пусть идёт на home, там разберётся
             setStatus('redirect');
          });
    }, []);
