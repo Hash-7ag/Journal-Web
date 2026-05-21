@@ -15,6 +15,11 @@ const GRADE_LIMITS = {
    exam: 50,
 };
 
+const parseMonthStr = (str) => {
+   const [mm, yyyy] = str.split('-');
+   return { month: Number(mm), year: Number(yyyy) };
+};
+
 const AZ_MONTHS = [
    'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun',
    'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
@@ -35,6 +40,10 @@ function TeacherGroupDetail() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
    const [activeTab, setActiveTab] = useState('grades');
+
+   const [calendarModal, setCalendarModal] = useState(false);
+   const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
+   const [allBusyDates, setAllBusyDates] = useState(new Set());
 
    // Attendance state
    const [attendanceData, setAttendanceData] = useState([]); // all fetched attendence docs
@@ -107,42 +116,76 @@ function TeacherGroupDetail() {
    // When switching to attendance tab — fetch available months from existing data
    const handleAttendanceTab = async () => {
       setActiveTab('attendance');
-      const now = new Date();
-      const months = [];
 
-      // 6 ay arxaya, 6 ay qabağa — ümumicə 13
-      for (let i = -6; i <= 6; i++) {
-         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-         months.push({ month: d.getMonth() + 1, year: d.getFullYear() });
-      }
+      try {
+         const res = await api.get(`/teacher/months/${group}/${subject}`);
+         const monthStrings = res.data ?? []; // ["09-2024", "10-2024", ...]
 
-      const results = await Promise.allSettled(
-         months.map(({ month, year }) => {
-            const monthStr = `${String(month).padStart(2, '0')}-${year}`;
-            return api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`);
-         })
-      );
+         const parsed = monthStrings.map(parseMonthStr);
+         setAvailableMonths(parsed);
 
-      const available = months
-         .filter((_, i) => results[i].status === 'fulfilled')
-         .sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            return a.month - b.month;
-         });
+         try {
+            const allResults = await Promise.all(
+               parsed.map(({ month, year }) => {
+                  const monthStr = `${String(month).padStart(2, '0')}-${year}`;
+                  return api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`);
+               })
+            );
+            const busySet = new Set();
+            allResults.forEach(res => {
+               (res.data ?? []).forEach(doc => {
+                  const d = new Date(doc.date);
+                  const key = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+                  busySet.add(key);
+               });
+            });
+            setAllBusyDates(busySet);
+         } catch (err) { setError(err.message); }
 
-      setAvailableMonths(available);
-
-      if (available.length > 0) {
-         const latest = available[available.length - 1];
-         setSelectedMonth(latest);
-         const idx = months.findIndex(m => m.month === latest.month && m.year === latest.year);
-         if (results[idx].status === 'fulfilled') {
-            setAttendanceData(results[idx].value.data ?? []);
+         if (parsed.length > 0) {
+            const latest = parsed[parsed.length - 1];
+            setSelectedMonth(latest);
+            await fetchAttendance(latest.month, latest.year);
+         } else {
+            const now = new Date();
+            const cur = { month: now.getMonth() + 1, year: now.getFullYear() };
+            setSelectedMonth(cur);
+            setAttendanceData([]);
          }
-      } else {
-         const cur = { month: now.getMonth() + 1, year: now.getFullYear() };
-         setSelectedMonth(cur);
-         setAttendanceData([]);
+      } catch (err) {
+         setError(err.response?.data?.message);
+         const now = new Date();
+         const months = [];
+         for (let i = -6; i <= 6; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            months.push({ month: d.getMonth() + 1, year: d.getFullYear() });
+         }
+
+         const results = await Promise.allSettled(
+            months.map(({ month, year }) => {
+               const monthStr = `${String(month).padStart(2, '0')}-${year}`;
+               return api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`);
+            })
+         );
+
+         const available = months
+            .filter((_, i) => results[i].status === 'fulfilled')
+            .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
+
+         setAvailableMonths(available);
+
+         if (available.length > 0) {
+            const latest = available[available.length - 1];
+            setSelectedMonth(latest);
+            const idx = months.findIndex(m => m.month === latest.month && m.year === latest.year);
+            if (results[idx].status === 'fulfilled') {
+               setAttendanceData(results[idx].value.data ?? []);
+            }
+         } else {
+            const cur = { month: now.getMonth() + 1, year: now.getFullYear() };
+            setSelectedMonth(cur);
+            setAttendanceData([]);
+         }
       }
    };
 
@@ -191,6 +234,11 @@ function TeacherGroupDetail() {
          });
 
          setAttSuccess('Davamiyyət əlavə edildi!');
+         setAllBusyDates(prev => {
+            const next = new Set(prev);
+            next.add(newAttDate);
+            return next;
+         });
          setShowNewRow(false);
 
          await Promise.all([
@@ -463,10 +511,8 @@ function TeacherGroupDetail() {
                   {!showNewRow && (
                      <button
                         onClick={() => {
-                           const resetMap = {};
-                           students.forEach(s => { resetMap[s._id] = true; });
-                           setNewAttStudents(resetMap);
-                           setShowNewRow(true);
+                           setCalendarViewDate(new Date());
+                           setCalendarModal(true);
                            setAttError('');
                            setAttSuccess('');
                         }}
@@ -486,8 +532,8 @@ function TeacherGroupDetail() {
                      <span className="loading loading-spinner loading-md" style={{ color: '#8B5CF6' }} />
                   </div>
                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm">
-                     <table className="text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+                  <div className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm w-full p-4" style={{ maxWidth: '100%' }}>
+                     <table className="text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, width: 'max-content', minWidth: '100%' }}>
                         <thead>
                            <tr className="border-b border-base-200 bg-base-100">
                               {/* Sticky student column header */}
@@ -502,14 +548,15 @@ function TeacherGroupDetail() {
                               ))}
                               {/* New date column */}
                               {showNewRow && (
-                                 <th className="py-3 text-center w-24 min-w-[96px]">
-                                    <input
-                                       type="text"
-                                       value={newAttDate}
-                                       onChange={e => setNewAttDate(e.target.value)}
-                                       placeholder="DD-MM-YYYY"
-                                       className="input input-sm w-20 rounded-lg border border-[#8B5CF6] bg-base-200/50 text-xs text-center focus:outline-none"
-                                    />
+                                 <th className="py-3 text-center w-16 min-w-[64px]">
+                                    <div className="inline-flex flex-col items-center gap-0.5">
+                                       <span className="text-xs font-bold text-[#8B5CF6]">
+                                          {newAttDate.split('-')[0]}
+                                       </span>
+                                       <span className="text-[10px] opacity-40">
+                                          {newAttDate.split('-')[1]}/{newAttDate.split('-')[2]?.slice(2)}
+                                       </span>
+                                    </div>
                                  </th>
                               )}
                            </tr>
@@ -523,9 +570,9 @@ function TeacherGroupDetail() {
                                  'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'
                               ];
                               return (
-                                 <tr key={sid} className="border-b border-base-200 last:border-0 hover:bg-base-200/30 transition-colors">
+                                 <tr key={sid} className={`border-b border-base-200 last:border-0 transition-colors ${showNewRow ? 'bg-violet-50/40 dark:bg-violet-900/10' : 'hover:bg-base-200/30'}`}>
                                     {/* Sticky student name */}
-                                    <td className="sticky left-0 z-10 bg-base-100 px-4 py-2.5 border-r border-base-200 flex flex-wrap items-center justify-between">
+                                    <td className="sticky left-0 z-10 bg-base-100 px-4 py-2.5 border-r border-base-200 flex items-center justify-between">
                                        <div className="flex items-center gap-2.5">
                                           <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0`}>
                                              {initials || <FiUser size={11} />}
@@ -571,8 +618,8 @@ function TeacherGroupDetail() {
                                           <button
                                              onClick={() => setNewAttStudents(prev => ({ ...prev, [sid]: !prev[sid] }))}
                                              className={`w-8 h-8 rounded-xl font-bold text-sm text-white transition-all duration-200 shadow-sm ${newAttStudents[sid]
-                                                ? 'bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-                                                : 'bg-red-500 hover:bg-red-600 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
+                                                ? 'bg-emerald-400 hover:bg-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
+                                                : 'bg-red-400 hover:bg-red-500 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
                                                 }`}
                                           >
                                              {newAttStudents[sid] ? '+' : 'q'}
@@ -726,6 +773,145 @@ function TeacherGroupDetail() {
                <div className="modal-backdrop" onClick={() => setStudentModal(null)} />
             </div>
          )}
+         {calendarModal && (() => {
+            const year = calendarViewDate.getFullYear();
+            const month = calendarViewDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startOffset = (firstDay + 6) % 7; // Пн = 0
+
+            const mm = String(month + 1).padStart(2, '0');
+            const busyDays = new Set(
+               [...allBusyDates]
+                  .filter(key => key.endsWith(`-${mm}-${year}`))
+                  .map(key => parseInt(key.split('-')[0], 10))
+            );
+
+            const cells = [];
+            for (let i = 0; i < startOffset; i++) cells.push(null);
+            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+            const handlePickDay = async (day) => {
+               if (!day || busyDays.has(day)) return;
+
+               const dd = String(day).padStart(2, '0');
+               const mm = String(month + 1).padStart(2, '0');
+               const pickedDate = `${dd}-${mm}-${year}`;
+
+               const pickedMonthMatches =
+                  selectedMonth?.month === month + 1 && selectedMonth?.year === year;
+
+               const monthExists = availableMonths.some(
+                  m => m.month === month + 1 && m.year === year
+               );
+
+               if (!pickedMonthMatches && monthExists) {
+                  alert(`Zəhmət olmasa ${AZ_MONTHS[month]} ${year} ayına keçin`);
+                  return;
+               }
+
+               setNewAttDate(pickedDate);
+               const resetMap = {};
+               students.forEach(s => { resetMap[s._id] = true; });
+               setNewAttStudents(resetMap);
+               setShowNewRow(true);
+               setCalendarModal(false);
+
+               if (!monthExists) {
+                  const newMonth = { month: month + 1, year };
+                  setSelectedMonth(newMonth);
+                  setAttendanceData([]);
+                  setAvailableMonths(prev =>
+                     [...prev, newMonth].sort((a, b) =>
+                        a.year !== b.year ? a.year - b.year : a.month - b.month
+                     )
+                  );
+               }
+            };
+
+            const prevMonth = () => setCalendarViewDate(new Date(year, month - 1, 1));
+            const nextMonth = () => setCalendarViewDate(new Date(year, month + 1, 1));
+
+            return (
+               <div className="modal modal-open z-50" role="dialog">
+                  <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-sm overflow-hidden">
+
+                     <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
+
+                     <div className="p-6 flex flex-col gap-4">
+
+                        {/* Заголовок */}
+                        <div className="flex items-center justify-between">
+                           <h3 className="text-base font-bold">Tarix seçin</h3>
+                           <button
+                              onClick={() => setCalendarModal(false)}
+                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                           >
+                              <FiX size={15} />
+                           </button>
+                        </div>
+
+                        {/* Навигация по месяцам */}
+                        <div className="flex items-center justify-between">
+                           <button
+                              onClick={prevMonth}
+                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                           >
+                              <FiArrowLeft size={14} />
+                           </button>
+                           <span className="text-sm font-semibold">
+                              {AZ_MONTHS[month]} {year}
+                           </span>
+                           <button
+                              onClick={nextMonth}
+                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                           >
+                              <FiArrowLeft size={14} className="rotate-180" />
+                           </button>
+                        </div>
+
+                        {/* Дни недели */}
+                        <div className="grid grid-cols-7 gap-1">
+                           {['B.e', 'Ç.a', 'Ç', 'C.a', 'C', 'Ş', 'B'].map(d => (
+                              <div key={d} className="text-center text-xs opacity-30 font-semibold py-1">{d}</div>
+                           ))}
+
+                           {/* Ячейки */}
+                           {cells.map((day, i) => {
+                              const isBusy = day && busyDays.has(day);
+                              const isEmpty = !day;
+                              return (
+                                 <button
+                                    key={i}
+                                    disabled={!day || isBusy}
+                                    onClick={() => handlePickDay(day)}
+                                    className={`
+                              aspect-square rounded-xl text-sm font-semibold transition-all duration-150
+                              ${isEmpty ? 'invisible' : ''}
+                              ${isBusy
+                                          ? 'opacity-25 cursor-not-allowed text-base-content bg-base-200'
+                                          : day
+                                             ? 'hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#3B82F6] hover:text-white hover:shadow-md cursor-pointer'
+                                             : ''
+                                       }
+                           `}
+                                 >
+                                    {day}
+                                 </button>
+                              );
+                           })}
+                        </div>
+
+                        {/* Подсказка */}
+                        <p className="text-xs opacity-30 text-center">
+                           Boz rəngli günlər artıq mövcuddur
+                        </p>
+                     </div>
+                  </div>
+                  <div className="modal-backdrop" onClick={() => setCalendarModal(false)} />
+               </div>
+            );
+         })()}
       </div>
    );
 }
