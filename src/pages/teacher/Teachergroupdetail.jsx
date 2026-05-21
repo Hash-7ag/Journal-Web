@@ -533,7 +533,7 @@ function TeacherGroupDetail() {
                   </div>
                ) : (
                   <div className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm w-full p-4" style={{ maxWidth: '100%' }}>
-                     <table className="text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, width: 'max-content', minWidth: '100%' }}>
+                     <table className="text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, width: 'max-content' }}>
                         <thead>
                            <tr className="border-b border-base-200 bg-base-100">
                               {/* Sticky student column header */}
