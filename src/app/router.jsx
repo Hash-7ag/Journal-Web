@@ -27,65 +27,20 @@ const homeRoutes = {
 };
 
 function PublicGuard({ children }) {
-   const { role } = getUserStoreData();
    const ls = localStorage.getItem("app_user_role");
-   if (ls && role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
+   if (ls) {
+      const { role } = getUserStoreData();
+      if (role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
+   }
    return children;
 }
 
 function PrivateGuard({ children, allowedRole }) {
-   const ls = localStorage.getItem("app_user_role");
-   if (!ls) return <Navigate to="/" replace />;
-
    const { role } = getUserStoreData();
    if (!role) return <Navigate to="/" replace />;
 
    if (allowedRole && role !== allowedRole) {
       return <Navigate to={homeRoutes[role] ?? '/'} replace />;
-   }
-
-   return children;
-}
-
-function ChangePasswordGuard({ children }) {
-   const ls = localStorage.getItem("app_user_role");
-   if (!ls) return <Navigate to="/" replace />;
-
-   const { role } = getUserStoreData();
-   if (!role) return <Navigate to="/" replace />;
-
-   const [status, setStatus] = useState('loading'); // 'loading' | 'ok' | 'redirect'
-
-   const homeRoutes = {
-      admin: '/home',
-      student: '/student/home',
-      teacher: '/teacher/home',
-   };
-
-   useEffect(() => {
-      api.get(`/${role}/getMyProfile`)
-         .then(res => {
-            if (res.data.isChangePassword) {
-               setStatus('redirect');
-            } else {
-               setStatus('ok');
-            }
-         })
-         .catch(() => {
-            setStatus('redirect');
-         });
-   }, []);
-
-   if (status === 'loading') {
-      return (
-         <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
-            <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
-         </div>
-      );
-   }
-
-   if (status === 'redirect') {
-      return <Navigate to={homeRoutes[role]} replace />;
    }
 
    return children;
@@ -106,18 +61,14 @@ export const router = createBrowserRouter([
          },
          {
             path: "login",
-            element: (
-               <PublicGuard>
-                  <Login />
-               </PublicGuard>
-            )
+            element: <Login />
          },
          {
             path: "changePassword",
             element: (
-               <ChangePasswordGuard>
+               <PrivateGuard>
                   <ChangePassword />
-               </ChangePasswordGuard>
+               </PrivateGuard>
             )
          },
 

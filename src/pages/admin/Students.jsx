@@ -7,6 +7,116 @@ import {
 } from 'react-icons/fi';
 import { formatPhone, phoneToRaw } from '../../scripts/usePhoneInput.js';
 
+// ── Reset Password Block ────────────────────────────────
+function ResetPasswordBlock({ id, role }) {
+   const [loading, setLoading] = useState(false);
+   const [newPassword, setNewPassword] = useState('');
+   const [copied, setCopied] = useState(false);
+   const [error, setError] = useState('');
+   const [confirm, setConfirm] = useState(false);
+
+   const handleReset = async () => {
+      try {
+         setLoading(true);
+         setError('');
+         setNewPassword('');
+         setCopied(false);
+         setConfirm(false);
+         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+         let pwd = '';
+         for (let i = 0; i < 10; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+         const endpoint = role === 'teacher'
+            ? `/admin/resetTeacherPassword/${id}`
+            : `/admin/resetStudentPassword/${id}`;
+         await api.patch(endpoint, { password: pwd });
+         setNewPassword(pwd);
+      } catch (err) {
+         setError(err.response?.data?.message || 'Xəta baş verdi');
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   const handleCopy = () => {
+      navigator.clipboard.writeText(newPassword);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+   };
+
+   return (
+      <div className="flex flex-col gap-2 pt-1 border-t border-base-200">
+         {!newPassword && !confirm && (
+            <button
+               onClick={() => setConfirm(true)}
+               className="w-full py-2.5 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 text-amber-600 dark:text-amber-400 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-all duration-200"
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+               </svg>
+               Parolu Sıfırla
+            </button>
+         )}
+
+         {confirm && !newPassword && (
+            <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+               <div className="flex items-start gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 shrink-0 mt-0.5">
+                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <div className="flex flex-col gap-0.5">
+                     <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Əminsiniz?</span>
+                     <span className="text-xs text-amber-600 dark:text-amber-500 opacity-80">
+                        Parolu sıfırlasanız bu istifadəçi bütün cihazlardan çıxarılacaq.
+                     </span>
+                  </div>
+               </div>
+               <div className="flex gap-2">
+                  <button
+                     onClick={handleReset}
+                     disabled={loading}
+                     className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60"
+                  >
+                     {loading
+                        ? <><span className="loading loading-spinner loading-xs" /> Sıfırlanır...</>
+                        : 'Bəli, sıfırla'
+                     }
+                  </button>
+                  <button
+                     onClick={() => setConfirm(false)}
+                     disabled={loading}
+                     className="flex-1 py-2 rounded-xl border border-base-200 bg-base-100 text-sm font-semibold hover:bg-base-200 transition-all duration-200 disabled:opacity-60"
+                  >
+                     Ləğv et
+                  </button>
+               </div>
+            </div>
+         )}
+
+         {newPassword && (
+            <div className="flex flex-col gap-2">
+               <span className="text-xs opacity-50 ml-1">Yeni parol:</span>
+               <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50">
+                  <span className="flex-1 text-sm font-mono font-semibold tracking-wider">{newPassword}</span>
+                  <button
+                     onClick={handleCopy}
+                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${copied
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                        : 'bg-base-300 hover:bg-base-200 border border-base-200'
+                        }`}
+                  >
+                     {copied
+                        ? <><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg> Kopyalandı</>
+                        : <><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg> Kopyala</>
+                     }
+                  </button>
+               </div>
+            </div>
+         )}
+
+         {error && <span className="text-red-400 text-xs text-center">{error}</span>}
+      </div>
+   );
+}
 // ── Student Info Modal ──────────────────────────────────
 function StudentInfoModal({ student, onClose }) {
    if (!student) return null;
@@ -96,7 +206,7 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 // ── Student Row ─────────────────────────────────────────
-function StudentRow({ student, globalIndex, onInfo }) {
+function StudentRow({ student, globalIndex, onInfo, onEdit }) {
    const studentColors = [
       'from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]',
       'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]',
@@ -107,8 +217,9 @@ function StudentRow({ student, globalIndex, onInfo }) {
 
    return (
       <div className="bg-base-100 border border-base-200 rounded-2xl shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition-all duration-200">
-         <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0`}>
-            {initials || <FiUser size={16} />}
+         <div className="w-11 h-11 shrink-0 relative flex items-center justify-center">
+            <div className={`absolute w-9 h-9 bg-gradient-to-br ${colorClass} rotate-45 rounded-lg shadow-md`} />
+            <span className="relative z-10 text-white font-bold text-sm">{initials || '?'}</span>
          </div>
          <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
@@ -127,6 +238,14 @@ function StudentRow({ student, globalIndex, onInfo }) {
             )}
          </div>
          <button
+            onClick={() => onEdit(student)}
+            className="p-2 rounded-xl border border-base-200 opacity-40 hover:opacity-70 hover:bg-base-200 transition-all duration-200"
+         >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+         </button>
+         <button
             onClick={() => onInfo(student)}
             className="p-2 rounded-xl border border-base-200 opacity-40 hover:opacity-70 hover:bg-base-200 transition-all duration-200"
          >
@@ -139,7 +258,7 @@ function StudentRow({ student, globalIndex, onInfo }) {
 }
 
 // ── Group Section (Qrupda tab) ──────────────────────────
-function GroupSection({ group, index, onInfo }) {
+function GroupSection({ group, index, onInfo, onEdit }) {
    const [students, setStudents] = useState([]);
    const [page, setPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
@@ -222,10 +341,11 @@ function GroupSection({ group, index, onInfo }) {
                         return (
                            <div
                               key={student._id}
-                              className="flex items-center gap-3 px-4 py-3 rounded-xl border border-base-200 hover:bg-base-200/30 hover:shadow-sm transition-all duration-200"
+                              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-base-200/40 hover:bg-base-200/70 transition-all duration-200"
                            >
-                              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${studentColors[colorIdx]} flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0`}>
-                                 {initials || <FiUser size={12} />}
+                              <div className="w-9 h-9 shrink-0 relative flex items-center justify-center">
+                                 <div className={`absolute w-7 h-7 bg-gradient-to-br ${studentColors[colorIdx]} rotate-45 rounded-lg shadow-sm`} />
+                                 <span className="relative z-10 text-white font-bold text-xs">{initials || '?'}</span>
                               </div>
                               <div className="flex-1 min-w-0">
                                  <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
@@ -243,6 +363,14 @@ function GroupSection({ group, index, onInfo }) {
                                     </div>
                                  )}
                               </div>
+                              <button
+                                 onClick={() => onEdit(student)}
+                                 className="p-2 rounded-xl border border-base-200 opacity-40 hover:opacity-70 hover:bg-base-200 transition-all duration-200 shrink-0"
+                              >
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                 </svg>
+                              </button>
                               <button
                                  onClick={() => onInfo(student)}
                                  className="p-2 rounded-xl border border-base-200 opacity-40 hover:opacity-70 hover:bg-base-200 transition-all duration-200 shrink-0"
@@ -266,6 +394,7 @@ function GroupSection({ group, index, onInfo }) {
 // ── Main Component ──────────────────────────────────────
 function Students() {
    const [activeTab, setActiveTab] = useState('free');
+   const [initialTabSet, setInitialTabSet] = useState(false);
 
    // Free students
    const [freeStudents, setFreeStudents] = useState([]);
@@ -281,6 +410,37 @@ function Students() {
    // Shared
    const [error, setError] = useState('');
    const [infoModal, setInfoModal] = useState(null);
+   const [editModal, setEditModal] = useState(null);
+   const [editForm, setEditForm] = useState({});
+   const [editSubmitting, setEditSubmitting] = useState(false);
+   const [editError, setEditError] = useState('');
+
+   const openEditStudent = (student) => {
+      setEditForm({
+         name: student.name ?? '',
+         surname: student.surname ?? '',
+         fatherName: student.fatherName ?? '',
+         username: student.username ?? '',
+         email: student.email ?? '',
+         phone: student.phoneNumber?.replace('+994', '') ?? '',
+      });
+      setEditError('');
+      setEditModal(student);
+   };
+
+   const handleEditStudent = async () => {
+      try {
+         setEditSubmitting(true);
+         setEditError('');
+         await api.patch(`/admin/updateStudentInfo/${editModal._id}`, editForm);
+         fetchFreeStudents(freePage);
+         setEditModal(null);
+      } catch (err) {
+         setEditError(err.response?.data?.message || 'Xəta baş verdi');
+      } finally {
+         setEditSubmitting(false);
+      }
+   };
 
    // Create modal
    const [isModalOpen, setIsModalOpen] = useState(false);
@@ -298,9 +458,14 @@ function Students() {
       try {
          setFreeLoading(true);
          const res = await api.get(`/admin/getFreeStudents?page=${p}&pageSize=${pageSize}`);
+         const total = res.data.total ?? 0;
          setFreeStudents(res.data.data ?? []);
          setFreeTotalPages(res.data.totalPages ?? 1);
-         setFreeTotal(res.data.total ?? 0);
+         setFreeTotal(total);
+         if (!initialTabSet) {
+            setActiveTab(total === 0 ? 'assigned' : 'free');
+            setInitialTabSet(true);
+         }
       } catch (err) {
          setError(err.message || 'Yükləmə xətası');
       } finally {
@@ -406,7 +571,7 @@ function Students() {
                </div>
             )}
             {[
-               { key: 'free', label: 'Boş', icon: <FiUser size={14} />, count: freeTotal },
+               ...(freeTotal > 0 ? [{ key: 'free', label: 'Boş', icon: <FiUser size={14} />, count: freeTotal }] : []),
                { key: 'assigned', label: 'Qrupda', icon: <FiUsers size={14} />, count: groups.length },
             ].map(tab => (
                <button
@@ -443,6 +608,7 @@ function Students() {
                            student={student}
                            globalIndex={(freePage - 1) * pageSize + index}
                            onInfo={setInfoModal}
+                           onEdit={openEditStudent}
                         />
                      ))}
                   </div>
@@ -468,6 +634,7 @@ function Students() {
                            group={group}
                            index={index}
                            onInfo={setInfoModal}
+                           onEdit={openEditStudent}
                         />
                      ))}
                   </div>
@@ -477,6 +644,70 @@ function Students() {
 
          {/* Student info modal */}
          <StudentInfoModal student={infoModal} onClose={() => setInfoModal(null)} />
+
+         {/* Edit Student Modal */}
+         {editModal && (
+            <div className="modal modal-open z-50" role="dialog">
+               <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-lg overflow-hidden">
+                  <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
+                  <div className="p-6 flex flex-col gap-5">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                           </div>
+                           <div>
+                              <h3 className="text-base font-bold">Şagirdi Redaktə Et</h3>
+                              <p className="text-xs opacity-40">{editModal.name} {editModal.surname}</p>
+                           </div>
+                        </div>
+                        <button onClick={() => setEditModal(null)} className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200">
+                           <FiX size={15} />
+                        </button>
+                     </div>
+                     <div className="grid grid-cols-2 gap-3">
+                        {[
+                           { name: 'name', label: 'Ad' },
+                           { name: 'surname', label: 'Soyad' },
+                           { name: 'fatherName', label: 'Ata adı' },
+                           { name: 'username', label: 'İstifadəçi adı' },
+                           { name: 'email', label: 'Email' },
+                           { name: 'phone', label: 'Telefon (son 9 rəqəm)' },
+                        ].map(({ name, label }) => (
+                           <div key={name} className="flex flex-col gap-1">
+                              <label className="text-xs font-medium opacity-50 ml-1">{label}</label>
+                              <input
+                                 type={name === 'email' ? 'email' : 'text'}
+                                 value={editForm[name] ?? ''}
+                                 onChange={e => setEditForm(p => ({ ...p, [name]: e.target.value }))}
+                                 className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
+                              />
+                           </div>
+                        ))}
+                     </div>
+                     {editError && <span className="text-red-400 text-xs text-center">{editError}</span>}
+                     <div className="flex gap-3">
+                        <button
+                           onClick={handleEditStudent}
+                           disabled={editSubmitting}
+                           className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:opacity-90 transition-all duration-200 disabled:opacity-60"
+                        >
+                           {editSubmitting ? <span className="loading loading-spinner loading-xs" /> : 'Yadda saxla'}
+                        </button>
+                        <button onClick={() => setEditModal(null)} className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200">
+                           Ləğv et
+                        </button>
+                     </div>
+
+                     {/* Reset password */}
+                     <ResetPasswordBlock id={editModal?._id} role="student" />
+                  </div>
+               </div>
+               <div className="modal-backdrop" onClick={() => setEditModal(null)} />
+            </div>
+         )}
 
          {/* Create modal */}
          {isModalOpen && (

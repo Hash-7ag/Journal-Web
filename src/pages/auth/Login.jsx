@@ -53,14 +53,13 @@ function Login() {
 
       try {
          setLoading(true);
-         await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
+         const loginRes = await api.post(`/${role}/loginAs${capitalize(role)}`, formValues);
 
-         // ✅ Переносим роль из sessionStorage в localStorage
+         // Переносим роль из sessionStorage в localStorage
          persistUserToLocal(role);
 
+         const { isChangePassword } = loginRes.data;
          setSuccess('Uğurla daxil oldunuz!');
-         const profileRes = await api.get(`/${role}/getMyProfile`);
-         const { isChangePassword } = profileRes.data;
          navigate(isChangePassword ? homeRoutes[role] : '/changePassword');
       } catch (error) {
          setServerError(

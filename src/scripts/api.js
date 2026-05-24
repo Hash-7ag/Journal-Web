@@ -44,9 +44,14 @@ api.interceptors.response.use(
         isRefreshing = false;
         refreshPromise = null;
 
-        // Refresh alınmadısa - "/"
-        clearUserStoreData();
-        window.location.href = "/";
+        const currentPath = window.location.pathname;
+        const publicPaths = ["/", "/login", "/changePassword"];
+
+        // Только если не на публичной странице — редиректим
+        if (!publicPaths.includes(currentPath)) {
+          clearUserStoreData();
+          window.location.href = "/";
+        }
 
         return Promise.reject(refreshErr);
       }
