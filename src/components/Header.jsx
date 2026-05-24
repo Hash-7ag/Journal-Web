@@ -12,6 +12,8 @@ function Header() {
    const isHidden = hiddenPaths.includes(location.pathname)
 
    const [logoutError, setLogoutError] = useState('');
+   const [logoHovered, setLogoHovered] = useState(false);
+   const [profileInitials, setProfileInitials] = useState('');
 
    const [theme, setTheme] = useState(
       () => localStorage.getItem('theme') || 'light'
@@ -31,14 +33,26 @@ function Header() {
 
    const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light')
 
-   const role = getUserStoreData()?.role
+   const role = getUserStoreData()?.role;
+
+   useEffect(() => {
+      if (!role) return;
+      api.get(`/${role}/getMyProfile`)
+         .then(res => {
+            const name = res.data?.name ?? '';
+            const surname = res.data?.surname ?? '';
+            setProfileInitials(`${name.charAt(0)}${surname.charAt(0)}`.toUpperCase());
+         })
+         .catch(() => { });
+   }, [role]);
 
    const handleLogout = async () => {
       try {
          setLoggingOut(true);
          setLogoutError('');
          await api.post(`/${role}/logoutAs${capitalize(role)}`);
-         clearUserStoreData(); // ✅ чистит и local и session
+         localStorage.removeItem('group_creation_draft');
+         clearUserStoreData();
          setLogoutModal(false);
          navigate('/');
       } catch (err) {
@@ -88,16 +102,40 @@ function Header() {
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
                {/* Logo */}
-               <Link to="/" className="flex items-center gap-2">
-                  <div className="relative w-8 h-8 shrink-0">
-                     <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
-                     <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
-                        EC
+               <Link
+                  to="/"
+                  className="flex items-center"
+                  onMouseEnter={() => setLogoHovered(true)}
+                  onMouseLeave={() => setLogoHovered(false)}
+               >
+                  <div className="relative flex items-center">
+                     {/* Иконка — сдвигается вправо при hover */}
+                     <div
+                        className="relative w-8 h-8 shrink-0 transition-transform duration-300 ease-in-out hidden [@media(hover:hover)]:block"
+                        style={{ transform: logoHovered ? 'translateX(4px)' : 'translateX(0px)' }}
+                     >
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
+                        <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">EC</div>
+                     </div>
+                     {/* Иконка без анимации для тач-устройств */}
+                     <div className="relative w-8 h-8 shrink-0 [@media(hover:hover)]:hidden">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
+                        <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">EC</div>
+                     </div>
+
+                     {/* Текст — вылезает из-за иконки, абсолютно позиционирован */}
+                     <div
+                        className="absolute left-8 hidden [@media(hover:hover)]:block overflow-hidden transition-all duration-300 ease-in-out"
+                        style={{
+                           maxWidth: logoHovered ? '160px' : '0px',
+                           opacity: logoHovered ? 1 : 0,
+                        }}
+                     >
+                        <span className="font-semibold text-sm opacity-80 whitespace-nowrap pl-2">
+                           Elektron Cədvəl
+                        </span>
                      </div>
                   </div>
-                  <span className="font-semibold text-sm hidden sm:block opacity-80">
-                     Elektron Cədvəl
-                  </span>
                </Link>
 
                {/* Nav */}
@@ -139,7 +177,7 @@ function Header() {
                         {/* Avatar */}
                         <Link to={homeLink}>
                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer hover:shadow-lg transition-shadow">
-                              {role?.charAt(0).toUpperCase()}
+                              {profileInitials || role?.charAt(0).toUpperCase()}
                            </div>
                         </Link>
 
