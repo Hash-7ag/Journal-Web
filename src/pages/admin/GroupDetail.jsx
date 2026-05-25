@@ -368,7 +368,11 @@ function GroupDetail() {
                         const sid = typeof s === 'object' ? s._id : s;
                         const teacher = item.teacher ?? s.teacherId;
                         return (
-                           <div key={sid ?? index} className="group/card bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                           <div
+                              key={sid ?? index}
+                              className="group/card bg-base-100 border border-base-200 rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                              onClick={() => navigate(`/groups/${id}/${sid}`)}
+                           >
                               <div className="flex items-center gap-3">
                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#A78BFA] flex items-center justify-center text-white shadow-md shrink-0">
                                     <FiBook size={16} />

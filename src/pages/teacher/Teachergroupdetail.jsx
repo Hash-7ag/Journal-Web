@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../scripts/api.js';
 import {
-   FiArrowLeft, FiUser, FiBook, FiAlertCircle, FiPlus, FiCheck, FiX, FiSave
+   FiArrowLeft, FiUser, FiBook, FiAlertCircle, FiPlus, FiX, FiSave
 } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
-// Grade limits
 const GRADE_LIMITS = {
    collegium1: 10,
    collegium2: 10,
@@ -45,24 +44,22 @@ function TeacherGroupDetail() {
    const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
    const [allBusyDates, setAllBusyDates] = useState(new Set());
 
-   // Attendance state
-   const [attendanceData, setAttendanceData] = useState([]); // all fetched attendence docs
-   const [selectedMonth, setSelectedMonth] = useState(null); // { month: 9, year: 2024 }
-   const [availableMonths, setAvailableMonths] = useState([]); // [{ month, year }]
+   const [attendanceData, setAttendanceData] = useState([]);
+   const [selectedMonth, setSelectedMonth] = useState(null);
+   const [availableMonths, setAvailableMonths] = useState([]);
    const [attendanceLoading, setAttendanceLoading] = useState(false);
 
-   // New attendance date input
    const [newAttDate, setNewAttDate] = useState(() => {
       const d = new Date();
       return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
    });
-   const [newAttStudents, setNewAttStudents] = useState({}); // { studentId: true/false }
+   const [newAttStudents, setNewAttStudents] = useState({});
    const [savingAtt, setSavingAtt] = useState(false);
    const [attError, setAttError] = useState('');
    const [attSuccess, setAttSuccess] = useState('');
    const [showNewRow, setShowNewRow] = useState(false);
+   const [attModal, setAttModal] = useState(false);
 
-   // Grade modal
    const [gradeModal, setGradeModal] = useState(false);
    const [gradeType, setGradeType] = useState('');
    const [selectedStudent, setSelectedStudent] = useState('');
@@ -74,6 +71,21 @@ function TeacherGroupDetail() {
    const [submitting, setSubmitting] = useState(false);
    const [modalError, setModalError] = useState('');
 
+   const tableRef = useRef(null);
+
+   useEffect(() => {
+      const el = tableRef.current;
+      if (!el) return;
+      const handleWheel = (e) => {
+         if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            el.scrollLeft += e.deltaY;
+            e.preventDefault();
+         }
+      };
+      el.addEventListener('wheel', handleWheel, { passive: false });
+      return () => el.removeEventListener('wheel', handleWheel);
+   }, []);
+
    const fetchAll = async () => {
       try {
          setLoading(true);
@@ -82,11 +94,9 @@ function TeacherGroupDetail() {
             api.get(`/teacher/getGrades/${group}/${subject}`),
          ]);
          const groupDocs = studentsRes.data ?? [];
-         const allStudents = groupDocs.flatMap(g => g.students ?? []).map(s => s.student ?? s);
+         const allStudents = groupDocs.flatMap(g => g.students ?? []).map(s => s.student ?? s).filter(s => s && s._id);
          setStudents(allStudents);
          setGrades(gradesRes.data);
-
-         // init new attendance — default true (gəldi) for all
          const initMap = {};
          allStudents.forEach(s => { initMap[s._id] = true; });
          setNewAttStudents(initMap);
@@ -97,7 +107,6 @@ function TeacherGroupDetail() {
       }
    };
 
-   // Fetch attendance for a specific month
    const fetchAttendance = async (month, year) => {
       try {
          setAttendanceLoading(true);
@@ -105,25 +114,19 @@ function TeacherGroupDetail() {
          const res = await api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`);
          setAttendanceData(res.data ?? []);
       } catch (err) {
-         if (err.response?.status === 404) {
-            setAttendanceData([]);
-         }
+         if (err.response?.status === 404) setAttendanceData([]);
       } finally {
          setAttendanceLoading(false);
       }
    };
 
-   // When switching to attendance tab — fetch available months from existing data
    const handleAttendanceTab = async () => {
       setActiveTab('attendance');
-
       try {
          const res = await api.get(`/teacher/months/${group}/${subject}`);
-         const monthStrings = res.data ?? []; // ["09-2024", "10-2024", ...]
-
+         const monthStrings = res.data ?? [];
          const parsed = monthStrings.map(parseMonthStr);
          setAvailableMonths(parsed);
-
          try {
             const allResults = await Promise.all(
                parsed.map(({ month, year }) => {
@@ -148,8 +151,7 @@ function TeacherGroupDetail() {
             await fetchAttendance(latest.month, latest.year);
          } else {
             const now = new Date();
-            const cur = { month: now.getMonth() + 1, year: now.getFullYear() };
-            setSelectedMonth(cur);
+            setSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
             setAttendanceData([]);
          }
       } catch (err) {
@@ -160,48 +162,35 @@ function TeacherGroupDetail() {
             const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
             months.push({ month: d.getMonth() + 1, year: d.getFullYear() });
          }
-
          const results = await Promise.allSettled(
             months.map(({ month, year }) => {
                const monthStr = `${String(month).padStart(2, '0')}-${year}`;
                return api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`);
             })
          );
-
          const available = months
             .filter((_, i) => results[i].status === 'fulfilled')
             .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
-
          setAvailableMonths(available);
-
          if (available.length > 0) {
             const latest = available[available.length - 1];
             setSelectedMonth(latest);
             const idx = months.findIndex(m => m.month === latest.month && m.year === latest.year);
-            if (results[idx].status === 'fulfilled') {
-               setAttendanceData(results[idx].value.data ?? []);
-            }
+            if (results[idx].status === 'fulfilled') setAttendanceData(results[idx].value.data ?? []);
          } else {
-            const cur = { month: now.getMonth() + 1, year: now.getFullYear() };
-            setSelectedMonth(cur);
+            setSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
             setAttendanceData([]);
          }
       }
    };
 
-   useEffect(() => {
-      fetchAll();
-   }, [group, subject]);
+   useEffect(() => { fetchAll(); }, [group, subject]);
 
-   // Build attendance table data
-   // attendanceData: [ { date, students: [ { student, attendence } ] } ]
    const buildTable = () => {
-      // collect all unique days from docs
-      const dayMap = {}; // day number → doc
+      const dayMap = {};
       attendanceData.forEach(doc => {
          const d = new Date(doc.date);
-         const day = d.getDate();
-         dayMap[day] = doc;
+         dayMap[d.getDate()] = doc;
       });
       const days = Object.keys(dayMap).map(Number).sort((a, b) => a - b);
       return { days, dayMap };
@@ -212,7 +201,7 @@ function TeacherGroupDetail() {
       const found = dayDoc.students?.find(
          s => s.student?.toString() === studentId?.toString() || s.student === studentId
       );
-      return found?.attendence ?? null; // true = gəldi, false = qayıb
+      return found?.attendence ?? null;
    };
 
    const handleSaveAttendance = async () => {
@@ -220,39 +209,18 @@ function TeacherGroupDetail() {
          setSavingAtt(true);
          setAttError('');
          setAttSuccess('');
-
          const studentsPayload = students.map(s => ({
             student: s._id,
             attendence: newAttStudents[s._id] ?? true,
          }));
-
-         await api.post('/teacher/addAttendence', {
-            date: newAttDate,
-            subject,
-            group,
-            students: studentsPayload,
-         });
-
+         await api.post('/teacher/addAttendence', { date: newAttDate, subject, group, students: studentsPayload });
          setAttSuccess('Davamiyyət əlavə edildi!');
-         setAllBusyDates(prev => {
-            const next = new Set(prev);
-            next.add(newAttDate);
-            return next;
-         });
-         setShowNewRow(false);
-
-         await Promise.all([
-            fetchAttendance(selectedMonth.month, selectedMonth.year),
-            fetchAll(),
-         ]);
-
+         setAllBusyDates(prev => { const next = new Set(prev); next.add(newAttDate); return next; });
+         await Promise.all([fetchAttendance(selectedMonth.month, selectedMonth.year), fetchAll()]);
          const exists = availableMonths.find(m => m.month === selectedMonth.month && m.year === selectedMonth.year);
          if (!exists) {
             setAvailableMonths(prev =>
-               [...prev, selectedMonth].sort((a, b) => {
-                  if (a.year !== b.year) return a.year - b.year;
-                  return a.month - b.month;
-               })
+               [...prev, selectedMonth].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month)
             );
          }
       } catch (err) {
@@ -262,7 +230,6 @@ function TeacherGroupDetail() {
       }
    };
 
-   // Grades tab helpers
    const getStudentGrade = (studentId, type) => {
       if (!grades) return null;
       const map = {
@@ -272,8 +239,7 @@ function TeacherGroupDetail() {
          coursework: grades.courseworkGrades,
          exam: grades.examGrades,
       };
-      const list = map[type] ?? [];
-      return list.find(g => g.student?.toString() === studentId?.toString() || g.student === studentId);
+      return (map[type] ?? []).find(g => g.student?.toString() === studentId?.toString() || g.student === studentId);
    };
 
    const calcTotal = (studentId) => {
@@ -319,9 +285,7 @@ function TeacherGroupDetail() {
    const handleSubmitGrade = async () => {
       if (!gradeValue || !gradeDate) { setModalError('Qiymət və tarixi doldurun'); return; }
       const max = GRADE_LIMITS[gradeType];
-      if (Number(gradeValue) < 0 || Number(gradeValue) > max) {
-         setModalError(`Qiymət 0 - ${max} aralığında olmalıdır`); return;
-      }
+      if (Number(gradeValue) < 0 || Number(gradeValue) > max) { setModalError(`Qiymət 0 - ${max} aralığında olmalıdır`); return; }
       try {
          setSubmitting(true);
          setModalError('');
@@ -367,7 +331,6 @@ function TeacherGroupDetail() {
    return (
       <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
 
-         {/* Back */}
          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm opacity-50 hover:opacity-100 mb-6 transition-opacity duration-200">
             <FiArrowLeft size={15} /> Geri
          </button>
@@ -377,7 +340,6 @@ function TeacherGroupDetail() {
             <p className="text-xs opacity-40 mt-0.5">{students.length} şagird</p>
          </div>
 
-         {/* Tabs */}
          <div className="flex gap-2 mb-6">
             {[
                { key: 'grades', label: 'Qiymətlər', icon: <FiBook size={14} /> },
@@ -410,33 +372,26 @@ function TeacherGroupDetail() {
                   const isLimited = getStudentGrade(sid, 'attendence')?.limited;
                   const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
                   return (
-                     <div key={sid} className={`bg-base-100 border rounded-2xl shadow-sm px-5 py-4 flex flex-wrap items-center gap-2 hover:shadow-md transition-all duration-200 ${isLimited
-                        ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10'
-                        : 'border-base-200'
-                        }`}
-                     >
+                     <div key={sid} className={`bg-base-100 border rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-2 hover:shadow-md transition-all duration-200 ${isLimited ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10' : 'border-base-200'}`}>
                         {isLimited && (
                            <div className="flex items-center gap-1.5 shrink-0 mt-2">
                               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
                                  <FiAlertCircle size={16} className="text-red-500 dark:text-red-400" />
-                                 <span className="hidden xl:block text-xs font-semibold text-red-500 dark:text-red-400">
-                                    Bu Şagird Limitdədir
-                                 </span>
+                                 <span className="hidden xl:block text-xs font-semibold text-red-500 dark:text-red-400">Bu Şagird Limitdədir</span>
                               </div>
                            </div>
                         )}
                         <div className='w-full flex flex-wrap items-center gap-4'>
-                           <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0`}>
-                              {initials || <FiUser size={14} />}
+                           <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0`}>
+                              {initials || <FiUser size={12} />}
                            </div>
-                           <div className="w-36 shrink-0 min-w-0">
-                              <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
-                              {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName}</div>}
+                           <div className="w-32 shrink-0 min-w-0">
+                              <div className="font-semibold text-xs truncate">{student.name} {student.surname}</div>
+                              {student.fatherName && <div className="text-xs opacity-30 truncate">{student.fatherName}</div>}
                            </div>
-                           {/* Info button */}
                            <button
                               onClick={() => setStudentModal(student)}
-                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
+                              className="w-7 h-7 rounded-lg border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
                            >
                               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
                                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
@@ -465,14 +420,13 @@ function TeacherGroupDetail() {
                               })}
                            </div>
                            <div className="w-px h-8 bg-base-200 shrink-0 hidden lg:block" />
-                           <div className="flex flex-col items-center shrink-0 min-w-[44px]">
+                           <div className="flex flex-col items-center shrink-0 min-w-[40px]">
                               <span className="text-xs opacity-30">Yekun</span>
-                              <span className={`text-xl font-bold ${totalColor(total)}`}>{total != null ? total : '—'}</span>
+                              <span className={`text-lg font-bold ${totalColor(total)}`}>{total != null ? total : '—'}</span>
                               <span className="text-xs opacity-20">/100</span>
                            </div>
                         </div>
                      </div>
-
                   );
                })}
             </div>
@@ -482,16 +436,12 @@ function TeacherGroupDetail() {
          {activeTab === 'attendance' && (
             <div className="flex flex-col gap-5">
 
-               {/* Month selector */}
                {availableMonths.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                      {availableMonths.map(m => (
                         <button
                            key={`${m.month}-${m.year}`}
-                           onClick={() => {
-                              setSelectedMonth(m);
-                              fetchAttendance(m.month, m.year);
-                           }}
+                           onClick={() => { setSelectedMonth(m); fetchAttendance(m.month, m.year); }}
                            className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${selectedMonth?.month === m.month && selectedMonth?.year === m.year
                               ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
                               : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
@@ -503,19 +453,13 @@ function TeacherGroupDetail() {
                   </div>
                )}
 
-               {/* Add attendance button */}
                <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold opacity-60">
                      {selectedMonth ? `${AZ_MONTHS[selectedMonth.month - 1]} ${selectedMonth.year}` : ''}
                   </h2>
                   {!showNewRow && (
                      <button
-                        onClick={() => {
-                           setCalendarViewDate(new Date());
-                           setCalendarModal(true);
-                           setAttError('');
-                           setAttSuccess('');
-                        }}
+                        onClick={() => { setCalendarViewDate(new Date()); setCalendarModal(true); setAttError(''); setAttSuccess(''); }}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
                      >
                         <FiPlus size={15} /> Davamiyyət əlavə et
@@ -526,36 +470,36 @@ function TeacherGroupDetail() {
                {attError && <span className="text-red-400 text-xs">{attError}</span>}
                {attSuccess && <span className="text-emerald-400 text-xs">{attSuccess}</span>}
 
-               {/* Journal table */}
+               {/* No data — снаружи таблицы */}
+               {!attendanceLoading && days.length === 0 && !showNewRow && (
+                  <div className="flex flex-col items-center justify-center py-10 gap-3 opacity-30">
+                     <PiStudent size={28} />
+                     <span className="text-sm">Bu ay üçün davamiyyət yoxdur</span>
+                  </div>
+               )}
+
                {attendanceLoading ? (
                   <div className="flex justify-center py-10">
                      <span className="loading loading-spinner loading-md" style={{ color: '#8B5CF6' }} />
                   </div>
-               ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm w-full p-4" style={{ maxWidth: '100%' }}>
+               ) : (days.length > 0 || showNewRow) ? (
+                  <div ref={tableRef}
+                     className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm w-full p-4"
+                     style={{ maxWidth: '100%' }}>
                      <table className="text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, width: 'max-content' }}>
                         <thead>
-                           <tr className="border-b border-base-200 bg-base-100">
-                              {/* Sticky student column header */}
-                              <th className="sticky left-0 z-10 bg-base-100 text-left px-4 py-3 font-semibold text-xs opacity-50 min-w-[180px] border-r border-base-200">
+                           <tr className="border-b border-base-200 bg-base-100 sticky top-0 z-[5]">
+                              <th className="sticky left-0 top-0 z-20 bg-base-100 text-left px-4 py-3 font-semibold text-xs opacity-50 min-w-[180px] border-r border-base-200">
                                  Şagird
                               </th>
-                              {/* Existing days */}
                               {days.map(day => (
-                                 <th key={day} className="py-3 text-center text-xs font-semibold opacity-50 w-10 min-w-[40px]">
-                                    {day}
-                                 </th>
+                                 <th key={day} className="py-3 text-center text-xs font-semibold opacity-50 w-10 min-w-[40px] bg-base-100 sticky top-0 z-[5]">{day}</th>
                               ))}
-                              {/* New date column */}
                               {showNewRow && (
-                                 <th className="py-3 text-center w-16 min-w-[64px]">
+                                 <th className="py-3 text-center w-16 min-w-[64px] bg-base-200/60 sticky top-0 z-[5]">
                                     <div className="inline-flex flex-col items-center gap-0.5">
-                                       <span className="text-xs font-bold text-[#8B5CF6]">
-                                          {newAttDate.split('-')[0]}
-                                       </span>
-                                       <span className="text-[10px] opacity-40">
-                                          {newAttDate.split('-')[1]}/{newAttDate.split('-')[2]?.slice(2)}
-                                       </span>
+                                       <span className="text-xs font-bold text-[#8B5CF6]">{newAttDate.split('-')[0]}</span>
+                                       <span className="text-[10px] opacity-40">{newAttDate.split('-')[1]}/{newAttDate.split('-')[2]?.slice(2)}</span>
                                     </div>
                                  </th>
                               )}
@@ -565,23 +509,16 @@ function TeacherGroupDetail() {
                            {students.map((student, index) => {
                               const sid = student._id;
                               const initials = `${student.name?.charAt(0) ?? ''}${student.surname?.charAt(0) ?? ''}`.toUpperCase();
-                              const colors = [
-                                 'from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]',
-                                 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'
-                              ];
+                              const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
                               return (
-                                 <tr key={sid} className={`border-b border-base-200 last:border-0 transition-colors ${showNewRow ? 'bg-violet-50/40 dark:bg-violet-900/10' : 'hover:bg-base-200/30'}`}>
-                                    {/* Sticky student name */}
+                                 <tr key={sid} className={`border-b border-base-200 last:border-0 transition-colors hover:bg-base-200/30 bg-base-100`}>
                                     <td className="sticky left-0 z-10 bg-base-100 px-4 py-2.5 border-r border-base-200 flex items-center justify-between">
                                        <div className="flex items-center gap-2.5">
                                           <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0`}>
                                              {initials || <FiUser size={11} />}
                                           </div>
-                                          <span className="font-medium text-xs whitespace-nowrap">
-                                             {student.name} {student.surname}
-                                          </span>
+                                          <span className="font-medium text-xs whitespace-nowrap">{student.name} {student.surname}</span>
                                        </div>
-                                       {/* Info button */}
                                        <button
                                           onClick={() => setStudentModal(student)}
                                           className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
@@ -591,8 +528,6 @@ function TeacherGroupDetail() {
                                           </svg>
                                        </button>
                                     </td>
-
-                                    {/* Existing days */}
                                     {days.map(day => {
                                        const att = getAttendenceForStudent(dayMap[day], sid);
                                        return (
@@ -600,21 +535,15 @@ function TeacherGroupDetail() {
                                              {att === null ? (
                                                 <span className="text-xs opacity-20">—</span>
                                              ) : att === true ? (
-                                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400 text-white text-xs font-bold shadow-sm">
-                                                   +
-                                                </span>
+                                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-400 text-white text-xs font-bold shadow-sm">+</span>
                                              ) : (
-                                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red-500 dark:bg-red-900/30 dark:text-red-400 text-white text-xs font-bold shadow-sm">
-                                                   q
-                                                </span>
+                                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red-500 dark:bg-red-900/30 dark:text-red-400 text-white text-xs font-bold shadow-sm">q</span>
                                              )}
                                           </td>
                                        );
                                     })}
-
-                                    {/* New attendance cell */}
                                     {showNewRow && (
-                                       <td className="py-2.5 text-center w-24">
+                                       <td className="py-2.5 text-center w-24 bg-base-200/40">
                                           <button
                                              onClick={() => setNewAttStudents(prev => ({ ...prev, [sid]: !prev[sid] }))}
                                              className={`w-8 h-8 rounded-xl font-bold text-sm text-white transition-all duration-200 shadow-sm ${newAttStudents[sid]
@@ -631,33 +560,83 @@ function TeacherGroupDetail() {
                            })}
                         </tbody>
                      </table>
-
-                     {/* No data */}
-                     {days.length === 0 && !showNewRow && (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 opacity-30">
-                           <PiStudent size={28} />
-                           <span className="text-sm">Bu ay üçün davamiyyət yoxdur</span>
-                        </div>
-                     )}
                   </div>
-               )}
+               ) : null}
 
-               {/* Save / Cancel new attendance row */}
-               {showNewRow && (
-                  <div className="flex gap-3">
-                     <button
-                        onClick={handleSaveAttendance}
-                        disabled={savingAtt}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-60"
-                     >
-                        {savingAtt ? <span className="loading loading-spinner loading-xs" /> : <><FiSave size={14} /> Yadda saxla</>}
-                     </button>
-                     <button
-                        onClick={() => { setShowNewRow(false); setAttError(''); }}
-                        className="px-5 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
-                     >
-                        Ləğv et
-                     </button>
+               {attModal && (
+                  <div className="modal modal-open z-50" role="dialog">
+                     <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-md overflow-hidden">
+                        <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
+                        <div className="p-6 flex flex-col gap-5">
+
+                           {/* Header */}
+                           <div className="flex items-center justify-between">
+                              <div>
+                                 <h3 className="text-base font-bold">Davamiyyət əlavə et</h3>
+                                 <p className="text-xs opacity-40 mt-0.5">{newAttDate}</p>
+                              </div>
+                              <button
+                                 onClick={() => { setAttModal(false); setAttError(''); }}
+                                 className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                              >
+                                 <FiX size={15} />
+                              </button>
+                           </div>
+
+                           {/* Students list */}
+                           <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+                              {students.map((student, index) => {
+                                 const sid = student._id;
+                                 const initials = `${student.name?.charAt(0) ?? ''}${student.surname?.charAt(0) ?? ''}`.toUpperCase();
+                                 const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
+                                 const isPresent = newAttStudents[sid] ?? true;
+                                 return (
+                                    <div key={sid} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-base-200 hover:bg-base-200/30 transition-all duration-200">
+                                       <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors[index % colors.length]} flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0`}>
+                                          {initials}
+                                       </div>
+                                       <div className="flex-1 min-w-0">
+                                          <div className="font-semibold text-sm truncate">{student.name} {student.surname}</div>
+                                          {student.fatherName && <div className="text-xs opacity-40 truncate">{student.fatherName}</div>}
+                                       </div>
+                                       <button
+                                          onClick={() => setNewAttStudents(prev => ({ ...prev, [sid]: !prev[sid] }))}
+                                          className={`w-9 h-9 rounded-xl font-bold text-sm text-white transition-all duration-200 shadow-sm shrink-0 ${isPresent
+                                             ? 'bg-emerald-400 hover:bg-emerald-500'
+                                             : 'bg-red-400 hover:bg-red-500'
+                                             }`}
+                                       >
+                                          {isPresent ? '+' : 'q'}
+                                       </button>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+
+                           {attError && <span className="text-red-400 text-xs text-center">{attError}</span>}
+
+                           {/* Actions */}
+                           <div className="flex gap-3 pt-1 border-t border-base-200">
+                              <button
+                                 onClick={async () => {
+                                    await handleSaveAttendance();
+                                    setAttModal(false);
+                                 }}
+                                 disabled={savingAtt}
+                                 className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:opacity-90 transition-all duration-200 disabled:opacity-60"
+                              >
+                                 {savingAtt ? <span className="loading loading-spinner loading-xs" /> : <><FiSave size={14} /> Yadda saxla</>}
+                              </button>
+                              <button
+                                 onClick={() => { setAttModal(false); setAttError(''); }}
+                                 className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
+                              >
+                                 Ləğv et
+                              </button>
+                           </div>
+                        </div>
+                     </div>
+                     <div className="modal-backdrop" onClick={() => { setAttModal(false); setAttError(''); }} />
                   </div>
                )}
             </div>
@@ -702,45 +681,31 @@ function TeacherGroupDetail() {
                </div>
             </div>
          )}
+
          {/* Student info modal */}
          {studentModal && (
             <div className="modal modal-open z-50" role="dialog">
                <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-sm overflow-hidden">
-
                   <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
-
                   <div className="p-6 flex flex-col gap-5">
-
-                     {/* Header */}
                      <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#3B82F6] to-[#60A5FA] flex items-center justify-center text-white font-bold text-base shadow-md shrink-0">
                               {studentModal.name?.charAt(0)}{studentModal.surname?.charAt(0)}
                            </div>
                            <div>
-                              <div className="font-bold text-base">
-                                 {studentModal.name} {studentModal.surname}
-                              </div>
+                              <div className="font-bold text-base">{studentModal.name} {studentModal.surname}</div>
                               <div className="text-xs opacity-40">{studentModal.fatherName} oğlu</div>
                            </div>
                         </div>
-                        <button
-                           onClick={() => setStudentModal(null)}
-                           className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0"
-                        >
+                        <button onClick={() => setStudentModal(null)} className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200 shrink-0">
                            <FiX size={15} />
                         </button>
                      </div>
-
-                     {/* Info fields */}
                      <div className="bg-base-200/50 rounded-xl p-4 border border-base-200 flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
-                           <span className="text-xs opacity-40 flex items-center gap-1">
-                              <FiUser size={11} /> Ad Soyad Ata adı
-                           </span>
-                           <span className="text-sm font-semibold">
-                              {studentModal.name} {studentModal.surname} {studentModal.fatherName}
-                           </span>
+                           <span className="text-xs opacity-40 flex items-center gap-1"><FiUser size={11} /> Ad Soyad Ata adı</span>
+                           <span className="text-sm font-semibold">{studentModal.name} {studentModal.surname} {studentModal.fatherName}</span>
                         </div>
                         <div className="w-full h-px bg-base-200" />
                         <div className="flex flex-col gap-1">
@@ -750,9 +715,7 @@ function TeacherGroupDetail() {
                               </svg>
                               Telefon
                            </span>
-                           <span className="text-sm font-semibold">
-                              {studentModal.phoneNumber || '—'}
-                           </span>
+                           <span className="text-sm font-semibold">{studentModal.phoneNumber || '—'}</span>
                         </div>
                         <div className="w-full h-px bg-base-200" />
                         <div className="flex flex-col gap-1">
@@ -762,70 +725,63 @@ function TeacherGroupDetail() {
                               </svg>
                               Email
                            </span>
-                           <span className="text-sm font-semibold">
-                              {studentModal.email || '—'}
-                           </span>
+                           <span className="text-sm font-semibold">{studentModal.email || '—'}</span>
                         </div>
                      </div>
-
                   </div>
                </div>
                <div className="modal-backdrop" onClick={() => setStudentModal(null)} />
             </div>
          )}
+
+         {/* Calendar Modal */}
          {calendarModal && (() => {
             const year = calendarViewDate.getFullYear();
             const month = calendarViewDate.getMonth();
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startOffset = (firstDay + 6) % 7; // Пн = 0
-
+            const startOffset = (firstDay + 6) % 7;
             const mm = String(month + 1).padStart(2, '0');
             const busyDays = new Set(
                [...allBusyDates]
                   .filter(key => key.endsWith(`-${mm}-${year}`))
                   .map(key => parseInt(key.split('-')[0], 10))
             );
-
             const cells = [];
             for (let i = 0; i < startOffset; i++) cells.push(null);
             for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
             const handlePickDay = async (day) => {
-               if (!day || busyDays.has(day)) return;
-
+               const today = new Date();
+               const picked = new Date(year, month, day);
+               picked.setHours(0, 0, 0, 0);
+               today.setHours(0, 0, 0, 0);
+               if (!day || busyDays.has(day) || picked > today) return;
                const dd = String(day).padStart(2, '0');
                const mm = String(month + 1).padStart(2, '0');
                const pickedDate = `${dd}-${mm}-${year}`;
-
-               const pickedMonthMatches =
-                  selectedMonth?.month === month + 1 && selectedMonth?.year === year;
-
+               const pickedMonth = { month: month + 1, year };
                const monthExists = availableMonths.some(
                   m => m.month === month + 1 && m.year === year
                );
-
-               if (!pickedMonthMatches && monthExists) {
-                  alert(`Zəhmət olmasa ${AZ_MONTHS[month]} ${year} ayına keçin`);
-                  return;
-               }
 
                setNewAttDate(pickedDate);
                const resetMap = {};
                students.forEach(s => { resetMap[s._id] = true; });
                setNewAttStudents(resetMap);
-               setShowNewRow(true);
                setCalendarModal(false);
+               setAttModal(true);
+               // Всегда переключаемся на месяц выбранной даты
+               setSelectedMonth(pickedMonth);
 
                if (!monthExists) {
-                  const newMonth = { month: month + 1, year };
-                  setSelectedMonth(newMonth);
                   setAttendanceData([]);
                   setAvailableMonths(prev =>
-                     [...prev, newMonth].sort((a, b) =>
-                        a.year !== b.year ? a.year - b.year : a.month - b.month
-                     )
+                     [...prev, pickedMonth].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month)
                   );
+               } else {
+                  // Месяц уже есть — подгружаем его данные
+                  await fetchAttendance(pickedMonth.month, pickedMonth.year);
                }
             };
 
@@ -835,77 +791,50 @@ function TeacherGroupDetail() {
             return (
                <div className="modal modal-open z-50" role="dialog">
                   <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-sm overflow-hidden">
-
                      <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
-
                      <div className="p-6 flex flex-col gap-4">
-
-                        {/* Заголовок */}
                         <div className="flex items-center justify-between">
                            <h3 className="text-base font-bold">Tarix seçin</h3>
-                           <button
-                              onClick={() => setCalendarModal(false)}
-                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
-                           >
+                           <button onClick={() => setCalendarModal(false)} className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200">
                               <FiX size={15} />
                            </button>
                         </div>
-
-                        {/* Навигация по месяцам */}
                         <div className="flex items-center justify-between">
-                           <button
-                              onClick={prevMonth}
-                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
-                           >
+                           <button onClick={prevMonth} className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200">
                               <FiArrowLeft size={14} />
                            </button>
-                           <span className="text-sm font-semibold">
-                              {AZ_MONTHS[month]} {year}
-                           </span>
-                           <button
-                              onClick={nextMonth}
-                              className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
-                           >
+                           <span className="text-sm font-semibold">{AZ_MONTHS[month]} {year}</span>
+                           <button onClick={nextMonth} className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-base-200 transition-all duration-200">
                               <FiArrowLeft size={14} className="rotate-180" />
                            </button>
                         </div>
-
-                        {/* Дни недели */}
                         <div className="grid grid-cols-7 gap-1">
                            {['B.e', 'Ç.a', 'Ç', 'C.a', 'C', 'Ş', 'B'].map(d => (
                               <div key={d} className="text-center text-xs opacity-30 font-semibold py-1">{d}</div>
                            ))}
-
-                           {/* Ячейки */}
                            {cells.map((day, i) => {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              const thisDay = day ? new Date(year, month, day) : null;
+                              const isFuture = thisDay && thisDay > today;
                               const isBusy = day && busyDays.has(day);
                               const isEmpty = !day;
+                              const isDisabled = !day || isBusy || isFuture;
                               return (
                                  <button
                                     key={i}
-                                    disabled={!day || isBusy}
+                                    disabled={isDisabled}
                                     onClick={() => handlePickDay(day)}
-                                    className={`
-                              aspect-square rounded-xl text-sm font-semibold transition-all duration-150
-                              ${isEmpty ? 'invisible' : ''}
-                              ${isBusy
-                                          ? 'opacity-25 cursor-not-allowed text-base-content bg-base-200'
-                                          : day
-                                             ? 'hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#3B82F6] hover:text-white hover:shadow-md cursor-pointer'
-                                             : ''
-                                       }
-                           `}
+                                    className={`aspect-square rounded-xl text-sm font-semibold transition-all duration-150
+                                       ${isEmpty ? 'invisible' : ''}
+                                       ${isBusy || isFuture ? 'opacity-25 cursor-not-allowed text-base-content bg-base-200' : day ? 'hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#3B82F6] hover:text-white hover:shadow-md cursor-pointer' : ''}
+                                    `}
                                  >
                                     {day}
                                  </button>
                               );
                            })}
                         </div>
-
-                        {/* Подсказка */}
-                        <p className="text-xs opacity-30 text-center">
-                           Boz rəngli günlər artıq mövcuddur
-                        </p>
                      </div>
                   </div>
                   <div className="modal-backdrop" onClick={() => setCalendarModal(false)} />

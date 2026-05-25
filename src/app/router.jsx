@@ -17,8 +17,9 @@ const NotFound = lazy(() => import("../pages/error/NotFound"));
 const StudentHome = lazy(() => import("../pages/student/StudentHome"));
 const StudentGrades = lazy(() => import("../pages/student/StudentGrades"));
 const TeacherHome = lazy(() => import("../pages/teacher/TeacherHome"));
-const TeacherGroups = lazy(() => import("../pages/teacher/TeacherGroups"));
-const TeacherGroupDetail = lazy(() => import("../pages/teacher/TeacherGroupDetail"));
+const TeacherGroups = lazy(() => import("../pages/teacher/TeacherGroups.jsx"));
+const TeacherGroupDetail = lazy(() => import("../pages/teacher/TeacherGroupDetail.jsx"));
+const GroupSubjectDetail = lazy(() => import("../pages/admin/GroupSubjectDetail"));
 
 const homeRoutes = {
    admin: '/home',
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
          { path: "groups", element: <PrivateGuard allowedRole="admin"><Groups /></PrivateGuard> },
          { path: "groups/:id", element: <PrivateGuard allowedRole="admin"><GroupDetail /></PrivateGuard> },
          { path: "subjects", element: <PrivateGuard allowedRole="admin"><Subjects /></PrivateGuard> },
+         { path: "groups/:id/:subjectId", element: <PrivateGuard allowedRole="admin"><GroupSubjectDetail /></PrivateGuard> },
          { path: "students", element: <PrivateGuard allowedRole="admin"><Students /></PrivateGuard> },
 
          // Student
