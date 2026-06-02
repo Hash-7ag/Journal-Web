@@ -254,7 +254,7 @@ function GroupDetail() {
                      {subjects.map((item, index) => {
                         const s = item.subject ?? item;
                         const sid = typeof s === 'object' ? s._id : s;
-                        return <SubjectCard key={sid ?? index} item={item} index={index} deletingId={deletingId} onDelete={handleDeleteSubject} onClick={() => navigate(`/groups/${id}/${sid}`)} />;
+                        return <SubjectCard key={sid ?? index} item={item} deletingId={deletingId} onDelete={handleDeleteSubject} onClick={() => navigate(`/groups/${id}/${sid}`)} />;
                      })}
                   </div>
                )}

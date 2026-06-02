@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiBook, FiUser, FiTrash2 } from 'react-icons/fi';
 
-function SubjectCard({ item, index, deletingId, onDelete, onClick }) {
+function SubjectCard({ item, deletingId, onDelete, onClick }) {
    const s = item.subject ?? item;
    const sid = typeof s === 'object' ? s._id : s;
    const teacher = item.teacher ?? s.teacherId;
