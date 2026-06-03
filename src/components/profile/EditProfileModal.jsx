@@ -24,7 +24,7 @@ function EditProfileModal({ form, onFormChange, editFields, onSave, onClose, sub
                </div>
 
                <div className="grid grid-cols-2 gap-3">
-                  {editFields.map(({ name, label, type }) => (
+                  {editFields?.length > 0 && editFields.map(({ name, label, type }) => (
                      <div key={name} className="flex flex-col gap-1">
                         <label className="text-xs font-medium opacity-50 ml-1">{label}</label>
                         <input type={type} value={form[name] ?? ''}
