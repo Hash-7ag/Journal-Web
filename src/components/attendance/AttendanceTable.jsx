@@ -4,7 +4,7 @@ import { FiUser, FiPlus } from 'react-icons/fi';
 const AZ_MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
 
-function AttendanceTable({ students, days, dayMap, availableMonths, selectedMonth, attendanceLoading, attError, attSuccess, getAttendenceForStudent, onSelectMonth, onOpenCalendar }) {
+function AttendanceTable({ students, days, dayMap, availableMonths, selectedMonth, attendanceLoading, attError, attSuccess, getAttendenceForStudent, onSelectMonth, onOpenCalendar, actionLabel }) {
    return (
       <div className="flex flex-col gap-5">
          {availableMonths.length > 0 && (
@@ -26,7 +26,7 @@ function AttendanceTable({ students, days, dayMap, availableMonths, selectedMont
             </h2>
             <button onClick={onOpenCalendar}
                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200">
-               <FiPlus size={15} /> Davamiyyət əlavə et
+               <FiPlus size={15} /> {actionLabel ?? 'Davamiyyət əlavə et'}
             </button>
          </div>
 

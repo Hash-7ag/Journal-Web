@@ -7,11 +7,11 @@ import { PiStudent } from 'react-icons/pi';
 import SubjectInfoPanel from '../../components/grades/SubjectInfoPanel';
 import GradeCell from '../../components/grades/GradeCell';
 import GradeEditModal from '../../components/grades/GradeEditModal';
-import AttendanceModal from '../../components/attendance/AttendanceModal';
-import AttendanceCalendarModal from '../../components/attendance/AttendanceCalendarModal';
 import AttendanceTable from '../../components/attendance/AttendanceTable';
 import TabBtn from '../../components/ui/TabBtn';
 import EmptyState from '../../components/ui/EmptyState';
+import EditAttendanceListModal from '../../components/attendance/EditAttendanceListModal';
+import EditAttendanceDayModal from '../../components/attendance/EditAttendanceDayModal';
 
 const GRADE_LIMITS = { collegium1: 10, collegium2: 10, coursework: 20, attendence: 10, exam: 50 };
 
@@ -19,6 +19,8 @@ const parseMonthStr = (str) => {
    const [mm, yyyy] = str.split('-');
    return { month: Number(mm), year: Number(yyyy) };
 };
+
+const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
 
 function GroupSubjectDetail() {
    const { id, subjectId } = useParams();
@@ -40,21 +42,17 @@ function GroupSubjectDetail() {
    const [availableMonths, setAvailableMonths] = useState([]);
    const [selectedMonth, setSelectedMonth] = useState(null);
    const [attendanceLoading, setAttendanceLoading] = useState(false);
-   const [allBusyDates, setAllBusyDates] = useState(new Set());
-   const [calendarModal, setCalendarModal] = useState(false);
-   const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
-   const [attModal, setAttModal] = useState(false);
-   const [newAttDate, setNewAttDate] = useState('');
-   const [newAttStudents, setNewAttStudents] = useState({});
-   const [savingAtt, setSavingAtt] = useState(false);
-   const [attError, setAttError] = useState('');
-   const [attSuccess, setAttSuccess] = useState('');
+
+   const [editListModal, setEditListModal] = useState(false);
+   const [editDayDoc, setEditDayDoc] = useState(null);
+   const [savingEdit, setSavingEdit] = useState(false);
+   const [editError, setEditError] = useState('');
 
    const fetchAttendance = async (month, year) => {
       try {
          setAttendanceLoading(true);
          const monthStr = `${String(month).padStart(2, '0')}-${year}`;
-         const res = await api.get(`/teacher/getAttendence/${id}/${subjectId}?date=${monthStr}`);
+         const res = await api.get(`/admin/getAttendence/${id}/${subjectId}?date=${monthStr}`);
          setAttendanceData(res.data ?? []);
       } catch (err) {
          if (err.response?.status === 404) setAttendanceData([]);
@@ -66,22 +64,9 @@ function GroupSubjectDetail() {
    const handleAttendanceTab = async () => {
       setActiveTab('attendance');
       try {
-         const res = await api.get(`/teacher/months/${id}/${subjectId}`);
+         const res = await api.get(`/admin/months/${id}/${subjectId}`);
          const parsed = (res.data ?? []).map(parseMonthStr);
          setAvailableMonths(parsed);
-         const allResults = await Promise.all(
-            parsed.map(({ month, year }) =>
-               api.get(`/teacher/getAttendence/${id}/${subjectId}?date=${String(month).padStart(2, '0')}-${year}`).catch(() => ({ data: [] }))
-            )
-         );
-         const busySet = new Set();
-         allResults.forEach(r => {
-            (r.data ?? []).forEach(doc => {
-               const d = new Date(doc.date);
-               busySet.add(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
-            });
-         });
-         setAllBusyDates(busySet);
          if (parsed.length > 0) {
             const latest = parsed[parsed.length - 1];
             setSelectedMonth(latest);
@@ -98,6 +83,21 @@ function GroupSubjectDetail() {
       }
    };
 
+   const handleUpdateAttendance = async (attendenceId, studentsPayload) => {
+      try {
+         setSavingEdit(true); setEditError('');
+         await api.patch(`/admin/updateAttendence/${attendenceId}`, { students: studentsPayload });
+         setEditDayDoc(null);
+         await fetchAttendance(selectedMonth.month, selectedMonth.year);
+         const gradesRes = await api.get(`/admin/getGrades/${id}/${subjectId}`);
+         setGrades(gradesRes.data);
+      } catch (err) {
+         setEditError(err.response?.data?.message || 'Xəta baş verdi');
+      } finally {
+         setSavingEdit(false);
+      }
+   };
+
    const buildTable = () => {
       const dayMap = {};
       attendanceData.forEach(doc => { const d = new Date(doc.date); dayMap[d.getDate()] = doc; });
@@ -107,26 +107,8 @@ function GroupSubjectDetail() {
 
    const getAttendenceForStudent = (dayDoc, studentId) => {
       if (!dayDoc) return null;
-      const found = dayDoc.students?.find(s => s.student?.toString() === studentId?.toString() || s.student === studentId);
+      const found = dayDoc.students?.find(s => (s.student?._id ?? s.student)?.toString() === studentId?.toString());
       return found?.attendence ?? null;
-   };
-
-   const handleSaveAttendance = async () => {
-      try {
-         setSavingAtt(true); setAttError(''); setAttSuccess('');
-         await api.post('/teacher/addAttendence', {
-            date: newAttDate, subject: subjectId, group: id,
-            students: students.map(s => ({ student: s._id, attendence: newAttStudents[s._id] ?? true })),
-         });
-         setAttSuccess('Davamiyyət əlavə edildi!');
-         setAllBusyDates(prev => { const next = new Set(prev); next.add(newAttDate); return next; });
-         setAttModal(false);
-         await fetchAttendance(selectedMonth.month, selectedMonth.year);
-         if (!availableMonths.find(m => m.month === selectedMonth.month && m.year === selectedMonth.year)) {
-            setAvailableMonths(prev => [...prev, selectedMonth].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month));
-         }
-      } catch (err) { setAttError(err.response?.data?.message || 'Xəta baş verdi'); }
-      finally { setSavingAtt(false); }
    };
 
    const gradeEndpoints = {
@@ -202,7 +184,6 @@ function GroupSubjectDetail() {
       { key: 'attendence', label: 'Dav.', max: 10, color: 'text-emerald-400' },
       { key: 'exam', label: 'İmtahan', max: 50, color: 'text-orange-400' },
    ];
-   const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
    const { days, dayMap } = buildTable();
 
    return (
@@ -264,10 +245,11 @@ function GroupSubjectDetail() {
                   <AttendanceTable
                      students={students} days={days} dayMap={dayMap}
                      availableMonths={availableMonths} selectedMonth={selectedMonth}
-                     attendanceLoading={attendanceLoading} attError={attError} attSuccess={attSuccess}
+                     attendanceLoading={attendanceLoading}
                      getAttendenceForStudent={getAttendenceForStudent}
                      onSelectMonth={m => { setSelectedMonth(m); fetchAttendance(m.month, m.year); }}
-                     onOpenCalendar={() => { setCalendarViewDate(new Date()); setCalendarModal(true); setAttError(''); setAttSuccess(''); }}
+                     onOpenCalendar={() => setEditListModal(true)}
+                     actionLabel="Davamiyyəti dəyiş"
                   />
                )}
             </div>
@@ -276,32 +258,26 @@ function GroupSubjectDetail() {
          <GradeEditModal gradeEdit={gradeEdit} gradeEditValue={gradeEditValue} onChange={setGradeEditValue}
             onSave={handleGradeEdit} onClose={() => setGradeEdit(null)} submitting={gradeEditSubmitting} error={gradeEditError} />
 
-         {attModal && (
-            <AttendanceModal date={newAttDate} students={students} attStudents={newAttStudents}
-               onToggle={sid => setNewAttStudents(prev => ({ ...prev, [sid]: !prev[sid] }))}
-               onSave={handleSaveAttendance} onClose={() => { setAttModal(false); setAttError(''); }}
-               saving={savingAtt} error={attError} />
+         {editListModal && (
+            <EditAttendanceListModal
+               availableMonths={availableMonths}
+               selectedMonth={selectedMonth}
+               onSelectMonth={m => { setSelectedMonth(m); fetchAttendance(m.month, m.year); }}
+               attendanceData={attendanceData}
+               attendanceLoading={attendanceLoading}
+               onEditDay={doc => setEditDayDoc(doc)}
+               onClose={() => setEditListModal(false)}
+            />
          )}
 
-         {calendarModal && (
-            <AttendanceCalendarModal
-               viewDate={calendarViewDate} onChangeViewDate={setCalendarViewDate}
-               allBusyDates={allBusyDates} onClose={() => setCalendarModal(false)}
-               onPickDay={(pickedDate, pickedMonth) => {
-                  setNewAttDate(pickedDate);
-                  const resetMap = {};
-                  students.forEach(s => { resetMap[s._id] = true; });
-                  setNewAttStudents(resetMap);
-                  setCalendarModal(false); setAttModal(true);
-                  setSelectedMonth(pickedMonth);
-                  const monthExists = availableMonths.some(m => m.month === pickedMonth.month && m.year === pickedMonth.year);
-                  if (!monthExists) {
-                     setAttendanceData([]);
-                     setAvailableMonths(prev => [...prev, pickedMonth].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month));
-                  } else {
-                     fetchAttendance(pickedMonth.month, pickedMonth.year);
-                  }
-               }}
+         {editDayDoc && (
+            <EditAttendanceDayModal
+               dayDoc={editDayDoc}
+               students={students}
+               onSave={handleUpdateAttendance}
+               onClose={() => { setEditDayDoc(null); setEditError(''); }}
+               saving={savingEdit}
+               error={editError}
             />
          )}
       </div>
