@@ -27,6 +27,12 @@ const homeRoutes = {
    teacher: '/teacher/home',
 };
 
+function LandingGuard({ children }) {
+   const { role } = getUserStoreData();
+   if (role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
+   return children;
+}
+
 function PublicGuard({ children }) {
    const ls = localStorage.getItem("app_user_role");
    if (ls) {
@@ -52,8 +58,8 @@ export const router = createBrowserRouter([
       path: "/",
       element: <MainLayout />,
       children: [
-         // Public landing — доступен всем
-         { index: true, element: <Landing /> },
+         // Landing — только для гостей; залогиненных кидает на их home
+         { index: true, element: <LandingGuard><Landing /></LandingGuard> },
 
          {
             path: "choose-role",
