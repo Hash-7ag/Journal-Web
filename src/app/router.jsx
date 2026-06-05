@@ -1,9 +1,9 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { useState, useEffect, lazy } from "react";
+import { lazy } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { getUserStoreData } from "../store/userStore.js";
-import api from "../scripts/api.js";
 
+const Landing = lazy(() => import("../pages/Landing.jsx"));
 const Groups = lazy(() => import("../pages/admin/Groups"));
 const GroupDetail = lazy(() => import("../pages/admin/GroupDetail"));
 const Subjects = lazy(() => import("../pages/admin/Subjects"));
@@ -38,10 +38,10 @@ function PublicGuard({ children }) {
 
 function PrivateGuard({ children, allowedRole }) {
    const { role } = getUserStoreData();
-   if (!role) return <Navigate to="/" replace />;
+   if (!role) return <Navigate to="/choose-role" replace />;
 
    if (allowedRole && role !== allowedRole) {
-      return <Navigate to={homeRoutes[role] ?? '/'} replace />;
+      return <Navigate to={homeRoutes[role] ?? '/choose-role'} replace />;
    }
 
    return children;
@@ -52,8 +52,11 @@ export const router = createBrowserRouter([
       path: "/",
       element: <MainLayout />,
       children: [
+         // Public landing — доступен всем
+         { index: true, element: <Landing /> },
+
          {
-            index: true,
+            path: "choose-role",
             element: (
                <PublicGuard>
                   <ChooseRole />

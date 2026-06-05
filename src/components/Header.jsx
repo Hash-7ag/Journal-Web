@@ -8,7 +8,7 @@ import api from '../scripts/api.js'
 function Header() {
    const location = useLocation()
    const navigate = useNavigate()
-   const hiddenPaths = ['/', '/login', '/changePassword']
+   const hiddenPaths = ['/', '/login', '/changePassword', '/choose-role']
    const isHidden = hiddenPaths.includes(location.pathname)
 
    const [logoutError, setLogoutError] = useState('');
