@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { lazy } from "react";
 import MainLayout from "../layouts/MainLayout";
-import { getUserStoreData } from "../store/userStore.js";
+import { getUserStoreData, getAuthRole } from "../store/userStore.js";
 
 const Landing = lazy(() => import("../pages/Landing.jsx"));
 const Groups = lazy(() => import("../pages/admin/Groups"));
@@ -27,32 +27,26 @@ const homeRoutes = {
    teacher: '/teacher/home',
 };
 
-function LandingGuard({ children }) {
-   const { role } = getUserStoreData();
+function PublicGuard({ children }) {
+   const role = getAuthRole();           // только реальный вход
    if (role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
    return children;
 }
 
-function PublicGuard({ children }) {
-   const ls = localStorage.getItem("app_user_role");
-   if (ls) {
-      const { role } = getUserStoreData();
-      if (role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
-   }
-   return children;
-}
-
 function PrivateGuard({ children, allowedRole }) {
-   const { role } = getUserStoreData();
+   const role = getAuthRole();           // только реальный вход
    if (!role) return <Navigate to="/choose-role" replace />;
-
    if (allowedRole && role !== allowedRole) {
       return <Navigate to={homeRoutes[role] ?? '/choose-role'} replace />;
    }
-
    return children;
 }
 
+function LandingGuard({ children }) {
+   const role = getAuthRole();           // только реальный вход
+   if (role) return <Navigate to={homeRoutes[role] ?? '/home'} replace />;
+   return children;
+}
 export const router = createBrowserRouter([
    {
       path: "/",

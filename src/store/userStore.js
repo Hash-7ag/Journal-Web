@@ -45,3 +45,14 @@ export const clearUserStoreData = () => {
 };
 
 export const getUserStoreData = () => ({ ...userData });
+
+// Реальная авторизация — только из localStorage
+export const getAuthRole = () => {
+  const ls = localStorage.getItem(STORAGE_KEY);
+  if (!ls) return null;
+  try {
+    return JSON.parse(ls).role ?? null;
+  } catch {
+    return null;
+  }
+};
