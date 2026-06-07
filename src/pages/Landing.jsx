@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
    FiArrowRight, FiDatabase, FiUsers, FiBook, FiLayers,
@@ -6,6 +6,7 @@ import {
    FiServer, FiCode
 } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
+import api from '../scripts/api.js';
 
 // ── Reveal-on-scroll wrapper ────────────────────────────
 function Reveal({ children, delay = 0, className = '' }) {
@@ -38,8 +39,80 @@ function Reveal({ children, delay = 0, className = '' }) {
    );
 }
 
+// ── Warm-up loading splash ──────────────────────────────
+function WarmupSplash() {
+   return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-base-100">
+         <style>{`
+            @keyframes splash-pulse {
+               0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139,92,246,0.5), 0 20px 40px -10px rgba(139,92,246,0.4); }
+               50% { transform: scale(1.08); box-shadow: 0 0 0 24px rgba(139,92,246,0), 0 20px 50px -8px rgba(139,92,246,0.6); }
+            }
+            @keyframes splash-orbit {
+               from { transform: rotate(0deg); }
+               to { transform: rotate(360deg); }
+            }
+            @keyframes splash-bar {
+               from { width: 0%; }
+               to { width: 100%; }
+            }
+            @keyframes splash-fade {
+               from { opacity: 0; transform: translateY(10px); }
+               to { opacity: 1; transform: translateY(0); }
+            }
+            .splash-logo { animation: splash-pulse 1.8s ease-in-out infinite; }
+            .splash-ring { animation: splash-orbit 3s linear infinite; }
+            .splash-bar-fill { animation: splash-bar 4.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+            .splash-text { animation: splash-fade 0.8s ease 0.3s both; }
+         `}</style>
+
+         {/* Logo with orbiting ring */}
+         <div className="relative flex items-center justify-center mb-10">
+            {/* Orbiting ring */}
+            <div className="splash-ring absolute w-28 h-28">
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] shadow-[0_0_12px_2px_rgba(139,92,246,0.6)]" />
+               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#3B82F6] shadow-[0_0_10px_2px_rgba(59,130,246,0.6)]" />
+            </div>
+            {/* Logo */}
+            <div className="splash-logo w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white font-bold text-2xl tracking-tight">
+               EC
+            </div>
+         </div>
+
+         {/* Progress bar */}
+         <div className="w-56 h-1.5 rounded-full bg-base-200 overflow-hidden mb-5">
+            <div className="splash-bar-fill h-full rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
+         </div>
+
+         {/* Text */}
+         <div className="splash-text flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold">Sistem hazırlanır</span>
+            <span className="text-xs opacity-40">Zəhmət olmasa bir az gözləyin...</span>
+         </div>
+      </div>
+   );
+}
+
 function Landing() {
    const navigate = useNavigate();
+
+   const [warming, setWarming] = useState(() => !sessionStorage.getItem('warmed_up'));
+
+   useEffect(() => {
+      if (!warming) return;
+
+      // будим бэк (ошибка не важна — главное достучаться до сервера)
+      api.get('/student/getMyProfile').catch(() => {});
+
+      const timer = setTimeout(() => {
+         sessionStorage.setItem('warmed_up', '1');
+         setWarming(false);
+      }, 4500);
+
+      return () => clearTimeout(timer);
+   }, [warming]);
+
+   if (warming) return <WarmupSplash />;
 
    const features = [
       { icon: <FiDatabase size={20} />, title: 'Şagird bazası', desc: 'Bütün şagirdlərin vahid məlumat bazasının yaradılması və idarəsi.', color: 'from-[#8B5CF6] to-[#3B82F6]' },
@@ -89,11 +162,14 @@ function Landing() {
             {/* Grid */}
             <div className="bg-grid absolute inset-0" />
 
+            {/* Aurora sweep */}
+            <div className="bg-aurora absolute inset-0" />
+
             {/* Gradient blobs */}
-            <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-[#8B5CF6]/30 to-[#3B82F6]/20 blur-3xl animate-blob animate-pulse-glow" />
-            <div className="absolute top-1/4 -right-32 w-[28rem] h-[28rem] rounded-full bg-gradient-to-br from-[#3B82F6]/25 to-[#A78BFA]/20 blur-3xl animate-blob animation-delay-2000 animate-pulse-glow" />
-            <div className="absolute top-2/3 left-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-[#6366F1]/25 to-[#8B5CF6]/20 blur-3xl animate-blob animation-delay-4000 animate-pulse-glow" />
-            <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-gradient-to-br from-[#A78BFA]/20 to-[#3B82F6]/15 blur-3xl animate-blob animation-delay-6000 animate-pulse-glow" />
+            <div className="absolute -top-32 -left-32 w-[30rem] h-[30rem] rounded-full bg-gradient-to-br from-[#8B5CF6]/60 to-[#3B82F6]/40 blur-3xl animate-blob animate-pulse-glow" />
+            <div className="absolute top-1/4 -right-32 w-[34rem] h-[34rem] rounded-full bg-gradient-to-br from-[#3B82F6]/55 to-[#A78BFA]/40 blur-3xl animate-blob animation-delay-2000 animate-pulse-glow" />
+            <div className="absolute top-2/3 left-1/4 w-[30rem] h-[30rem] rounded-full bg-gradient-to-br from-[#6366F1]/55 to-[#8B5CF6]/40 blur-3xl animate-blob animation-delay-4000 animate-pulse-glow" />
+            <div className="absolute bottom-0 right-1/4 w-[26rem] h-[26rem] rounded-full bg-gradient-to-br from-[#A78BFA]/50 to-[#3B82F6]/35 blur-3xl animate-blob animation-delay-6000 animate-pulse-glow" />
 
             {/* Floating particles */}
             <div className="particle absolute top-[15%] left-[10%]" />
@@ -103,21 +179,46 @@ function Landing() {
             <div className="particle absolute top-[85%] left-[40%] animation-delay-3000" />
             <div className="particle absolute top-[45%] left-[90%] animation-delay-5000" />
             <div className="particle absolute top-[10%] left-[50%] animation-delay-6000" />
+            <div className="particle absolute top-[25%] left-[35%] animation-delay-3000" />
+            <div className="particle absolute top-[60%] left-[50%] animation-delay-1000" />
+            <div className="particle absolute top-[80%] left-[78%] animation-delay-5000" />
+            <div className="particle absolute top-[40%] left-[8%] animation-delay-2000" />
+            <div className="particle absolute top-[5%] left-[70%] animation-delay-4000" />
          </div>
 
          <style>{`
             @keyframes blob {
                0%, 100% { transform: translate(0, 0) scale(1); }
-               33% { transform: translate(30px, -40px) scale(1.1); }
-               66% { transform: translate(-20px, 20px) scale(0.95); }
+               25% { transform: translate(70px, -60px) scale(1.25); }
+               50% { transform: translate(-50px, 40px) scale(0.85); }
+               75% { transform: translate(40px, 70px) scale(1.15); }
             }
-            .animate-blob { animation: blob 16s ease-in-out infinite; }
-                  
+            .animate-blob { animation: blob 12s ease-in-out infinite; }
+
             @keyframes pulse-glow {
-               0%, 100% { opacity: 1; }
-               50% { opacity: 0.55; }
+               0%, 100% { opacity: 0.95; }
+               50% { opacity: 0.4; }
             }
-            .animate-pulse-glow { animation: blob 16s ease-in-out infinite, pulse-glow 8s ease-in-out infinite; }
+            .animate-pulse-glow { animation: blob 12s ease-in-out infinite, pulse-glow 6s ease-in-out infinite; }
+
+            /* Aurora sweep */
+            .bg-aurora {
+               background:
+                  conic-gradient(from 0deg at 50% 50%,
+                     rgba(139,92,246,0.18),
+                     rgba(59,130,246,0.10),
+                     rgba(167,139,250,0.18),
+                     rgba(99,102,241,0.10),
+                     rgba(139,92,246,0.18));
+               filter: blur(60px);
+               mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 80%);
+               -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 30%, transparent 80%);
+               animation: aurora-spin 24s linear infinite;
+            }
+            @keyframes aurora-spin {
+               from { transform: rotate(0deg) scale(1.4); }
+               to { transform: rotate(360deg) scale(1.4); }
+            }
                   
             .animation-delay-1000 { animation-delay: 1s; }
             .animation-delay-2000 { animation-delay: 2s; }
@@ -134,31 +235,31 @@ function Landing() {
             /* Grid */
             .bg-grid {
                background-image:
-                  linear-gradient(to right, rgba(139,92,246,0.06) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(139,92,246,0.06) 1px, transparent 1px);
+                  linear-gradient(to right, rgba(139,92,246,0.14) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(139,92,246,0.14) 1px, transparent 1px);
                background-size: 56px 56px;
                mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
                -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 40%, transparent 100%);
-               animation: grid-drift 30s linear infinite;
+               animation: grid-drift 20s linear infinite;
             }
             @keyframes grid-drift {
                from { background-position: 0 0, 0 0; }
                to { background-position: 56px 56px, 56px 56px; }
             }
-                  
+
             /* Particles */
             .particle {
-               width: 6px;
-               height: 6px;
+               width: 10px;
+               height: 10px;
                border-radius: 9999px;
-               background: linear-gradient(to bottom right, #8B5CF6, #3B82F6);
-               opacity: 0.4;
-               box-shadow: 0 0 8px 1px rgba(139,92,246,0.4);
-               animation: particle-float 12s ease-in-out infinite;
+               background: linear-gradient(to bottom right, #A78BFA, #3B82F6);
+               opacity: 0.7;
+               box-shadow: 0 0 16px 3px rgba(139,92,246,0.7);
+               animation: particle-float 9s ease-in-out infinite;
             }
             @keyframes particle-float {
-               0%, 100% { transform: translateY(0) translateX(0); opacity: 0.25; }
-               50% { transform: translateY(-40px) translateX(15px); opacity: 0.6; }
+               0%, 100% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0.35; }
+               50% { transform: translateY(-70px) translateX(25px) scale(1.2); opacity: 0.9; }
             }
                   
             /* Disable all background FX on phones (< 768px) */
@@ -168,7 +269,7 @@ function Landing() {
                   
             /* Respect reduced-motion preference */
             @media (prefers-reduced-motion: reduce) {
-               .animate-blob, .animate-pulse-glow, .bg-grid, .particle {
+               .animate-blob, .animate-pulse-glow, .bg-grid, .bg-aurora, .particle {
                   animation: none;
                }
             }
