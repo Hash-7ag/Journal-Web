@@ -102,7 +102,7 @@ function Landing() {
       if (!warming) return;
 
       // будим бэк (ошибка не важна — главное достучаться до сервера)
-      api.get('/student/getMyProfile').catch(() => {});
+      api.get('/student/getMyProfile').catch(() => { });
 
       const timer = setTimeout(() => {
          sessionStorage.setItem('warmed_up', '1');
