@@ -55,7 +55,7 @@ function Groups() {
             setLoading(true);
             const [groupsRes, subjectsRes, studentsRes] = await Promise.all([
                api.get('/admin/getAllGroups'),
-               api.get('/admin/getAllSubjects?page=1&pageSize=10'),
+               api.get('/admin/getFreeSubjects?page=1&pageSize=10'),
                api.get('/admin/getFreeStudents?page=1&pageSize=10'),
             ]);
             setGroups(groupsRes.data.data);

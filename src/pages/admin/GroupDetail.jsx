@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../scripts/api';
 import { toRoman } from '../../scripts/roman.js';
-import { FiArrowLeft, FiUsers, FiBook, FiHash, FiLayers, FiPlus, FiCheck, FiClock, FiUser } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiBook, FiHash, FiLayers, FiPlus, FiCheck, FiClock, FiUser, FiTrendingUp } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
 import InfoCard from '../../components/ui/InfoCard';
