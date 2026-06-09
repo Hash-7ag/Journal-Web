@@ -134,7 +134,7 @@ function GroupDetail() {
       try {
          setSubjectLoadingMore(true);
          const nextPage = subjectPage + 1;
-         const res = await api.get(`/admin/getAllSubjects?page=${nextPage}&pageSize=10`);
+         const res = await api.get(`/admin/getFreeSubjectsForGroup/${id}?page=${nextPage}&pageSize=10`);
          const data = res.data.data ?? [];
          setAllSubjects(prev => [...prev, ...data]);
          setSubjectPage(nextPage);
@@ -196,6 +196,7 @@ function GroupDetail() {
          setPromoteModal(false);
          await fetchGroup();      // перезагрузить с новым текущим семестром
          await fetchSemestrs();   // обновить список семестров
+         await fetchAll();        // ← обновить список доступных предметов под новый семестр
       } catch (err) {
          setPromoteError(err.response?.data?.message || 'Xəta baş verdi');
       } finally {
