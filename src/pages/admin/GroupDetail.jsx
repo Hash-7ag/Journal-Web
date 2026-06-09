@@ -95,7 +95,7 @@ function GroupDetail() {
       try {
          const [studentsRes, subjectsRes] = await Promise.all([
             api.get('/admin/getFreeStudents?page=1&pageSize=10'),
-            api.get('/admin/getAllSubjects?page=1&pageSize=10'),
+            api.get(`/admin/getFreeSubjectsForGroup/${id}?page=1&pageSize=10`),
          ]);
          const studentsData = studentsRes.data.data ?? [];
          const subjectsData = subjectsRes.data.data ?? [];
