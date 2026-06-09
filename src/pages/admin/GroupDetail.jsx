@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../scripts/api';
+import { toRoman } from '../../scripts/roman.js';
 import { FiArrowLeft, FiUsers, FiBook, FiHash, FiLayers, FiPlus, FiCheck, FiClock, FiUser } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
@@ -12,7 +13,7 @@ import StudentRow from '../../components/group/StudentRow';
 import SubjectCard from '../../components/group/SubjectCard';
 import StudentInfoModal from '../../components/group/StudentInfoModal';
 import SemestrSwitcher from '../../components/group/SemestrSwitcher';
-import { toRoman } from '../../scripts/roman.js';
+import PromoteSemestrModal from '../../components/group/PromoteSemestrModal';
 
 function GroupDetail() {
    const { id } = useParams();
@@ -53,6 +54,10 @@ function GroupDetail() {
    const [deletingId, setDeletingId] = useState(null);
    const [modalError, setModalError] = useState('');
    const [infoModal, setInfoModal] = useState(null);
+
+   const [promoteModal, setPromoteModal] = useState(false);
+   const [promoting, setPromoting] = useState(false);
+   const [promoteError, setPromoteError] = useState('');
 
    const isArchive = shownSemestr != null && currentSemestr != null && shownSemestr !== currentSemestr;
 
@@ -184,6 +189,20 @@ function GroupDetail() {
       finally { setDeletingId(null); }
    };
 
+   const handlePromote = async (newSemestr) => {
+      try {
+         setPromoting(true); setPromoteError('');
+         await api.patch(`/admin/changeGroupSemestr/${id}`, { semestr: String(newSemestr) });
+         setPromoteModal(false);
+         await fetchGroup();      // перезагрузить с новым текущим семестром
+         await fetchSemestrs();   // обновить список семестров
+      } catch (err) {
+         setPromoteError(err.response?.data?.message || 'Xəta baş verdi');
+      } finally {
+         setPromoting(false);
+      }
+   };
+
    if (loading) return <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]"><span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} /></div>;
    if (error) return <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]"><div role="alert" className="alert alert-error max-w-sm rounded-xl"><span>{error}</span></div></div>;
    if (!group) return null;
@@ -247,13 +266,19 @@ function GroupDetail() {
 
          {/* Semestr switcher — только на вкладке Dərslər */}
          {activeTab === 'subjects' && currentSemestr != null && (
-            <div className="mb-5">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                <SemestrSwitcher
                   currentSemestr={currentSemestr}
                   shownSemestr={shownSemestr}
                   semestrs={semestrs}
                   onSelect={handleSelectSemestr}
                />
+               {!isArchive && currentSemestr < 6 && (
+                  <button onClick={() => { setPromoteError(''); setPromoteModal(true); }}
+                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-300/40 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 text-sm font-semibold hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 transition-all duration-200">
+                     <FiTrendingUp size={15} /> Növbəti semestr
+                  </button>
+               )}
             </div>
          )}
 
@@ -372,6 +397,16 @@ function GroupDetail() {
                   );
                })}
             </SelectModal>
+         )}
+
+         {promoteModal && (
+            <PromoteSemestrModal
+               currentSemestr={currentSemestr}
+               onSave={handlePromote}
+               onClose={() => setPromoteModal(false)}
+               submitting={promoting}
+               error={promoteError}
+            />
          )}
 
          <StudentInfoModal student={infoModal} onClose={() => setInfoModal(null)} />
