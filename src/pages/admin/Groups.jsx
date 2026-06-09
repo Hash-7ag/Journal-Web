@@ -7,6 +7,7 @@ import GroupCard from '../../components/group/GroupCard';
 import EditGroupModal from '../../components/group/EditGroupModal';
 import DraftModal from '../../components/group/DraftModal';
 import CreateGroupModal from '../../components/group/CreateGroupModal';
+import ChangeSemestrModal from '../../components/group/ChangeSemestrModal';
 
 const DRAFT_KEY = 'group_creation_draft';
 
@@ -45,6 +46,9 @@ function Groups() {
    const [editSubmitting, setEditSubmitting] = useState(false);
    const [editError, setEditError] = useState('');
 
+   const [semestrModal, setSemestrModal] = useState(null);
+   const [semestrSubmitting, setSemestrSubmitting] = useState(false);
+   const [semestrError, setSemestrError] = useState('');
    useEffect(() => {
       const fetchData = async () => {
          try {
@@ -184,6 +188,21 @@ function Groups() {
       finally { setEditSubmitting(false); }
    };
 
+   const handleChangeSemestr = async (semestr) => {
+      try {
+         setSemestrSubmitting(true); setSemestrError('');
+         await api.patch(`/admin/changeGroupSemestr/${semestrModal._id}`, { semestr: String(semestr) });
+         const groupsRes = await api.get('/admin/getAllGroups');
+         setGroups(groupsRes.data.data);
+         setSemestrModal(null);
+         setEditModal(null);
+      } catch (err) {
+         setSemestrError(err.response?.data?.message || 'Xəta baş verdi');
+      } finally {
+         setSemestrSubmitting(false);
+      }
+   };
+
    const filteredSubjects = subjects.filter(s =>
       s.subject?.toLowerCase().includes(subjectSearch.toLowerCase()) ||
       (s.teacherId?.name + ' ' + s.teacherId?.surname)?.toLowerCase().includes(subjectSearch.toLowerCase())
@@ -236,7 +255,18 @@ function Groups() {
             onClose={() => setEditModal(null)}
             submitting={editSubmitting}
             error={editError}
+            onOpenSemestr={() => { setSemestrError(''); setSemestrModal(editModal); }}
          />
+
+         {semestrModal && (
+            <ChangeSemestrModal
+               group={semestrModal}
+               onSave={handleChangeSemestr}
+               onClose={() => setSemestrModal(null)}
+               submitting={semestrSubmitting}
+               error={semestrError}
+            />
+         )}
 
          <DraftModal
             draftData={draftModal ? draftData : null}

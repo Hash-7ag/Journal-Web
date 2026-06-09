@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiX } from 'react-icons/fi';
 
-function EditGroupModal({ group, form, onFormChange, onSave, onClose, submitting, error }) {
+function EditGroupModal({ group, form, onFormChange, onSave, onClose, submitting, error, onOpenSemestr }) {
    if (!group) return null;
    return (
       <div className="modal modal-open z-50" role="dialog">
@@ -43,6 +43,11 @@ function EditGroupModal({ group, form, onFormChange, onSave, onClose, submitting
                      </div>
                   </div>
                </div>
+               <button onClick={onOpenSemestr}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#6366F1]/30 bg-[#6366F1]/5 text-[#6366F1] text-sm font-semibold hover:bg-[#6366F1]/10 transition-all duration-200">
+                  Semestri dəyiş{group.semestr ? ` · ${['', 'I', 'II', 'III', 'IV', 'V', 'VI'][group.semestr] ?? group.semestr}` : ''}
+               </button>
+
                {error && <span className="text-red-400 text-xs text-center">{error}</span>}
                <div className="flex gap-3">
                   <button onClick={onSave} disabled={submitting}
