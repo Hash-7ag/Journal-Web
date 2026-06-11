@@ -13,7 +13,7 @@ import SubjectCard from '../../components/group/SubjectCard';
 import StudentInfoModal from '../../components/group/StudentInfoModal';
 
 function GroupDetail() {
-   const { id } = useParams();
+   const { id, semestr } = useParams();
    const navigate = useNavigate();
 
    const [group, setGroup] = useState(null);
@@ -51,7 +51,7 @@ function GroupDetail() {
       try {
          setLoading(true);
          const [groupRes, studentsRes] = await Promise.all([
-            api.get(`/admin/getGroupById/${id}`),
+            api.post(`/admin/getGroupById/${id}`, { semestr }),
             api.get(`/admin/getAssignedyStudents/${id}?page=1&pageSize=999`),
          ]);
          setGroup({

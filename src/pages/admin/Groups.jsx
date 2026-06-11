@@ -219,7 +219,7 @@ function Groups() {
                      key={group._id || index}
                      group={group}
                      index={index}
-                     onClick={() => navigate(`/groups/${group._id}`, { state: { group } })}
+                     onClick={() => navigate(`/groups/${group._id}/${group.semestr}`, { state: { group } })}
                      onEdit={openEditGroup}
                   />
                ))}
