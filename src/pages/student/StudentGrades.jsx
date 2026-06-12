@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../scripts/api.js';
-import { FiBook, FiAlertCircle } from 'react-icons/fi';
+import { FiBook, FiAlertCircle, FiClock } from 'react-icons/fi';
 import SubjectGradeModal from '../../components/students/SubjectGradeModal';
+import SemestrSwitcher from '../../components/group/SemestrSwitcher';
+import { toRoman } from '../../scripts/roman.js';
 
 const cardColors = [
    'from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]',
@@ -31,46 +33,78 @@ const totalColor = (total) => {
 
 function StudentGrades() {
    const [profile, setProfile] = useState(null);
+   const [groupId, setGroupId] = useState(null);
    const [subjects, setSubjects] = useState([]);
    const [grades, setGrades] = useState({});
    const [loading, setLoading] = useState(true);
+   const [subjectsLoading, setSubjectsLoading] = useState(false);
    const [error, setError] = useState('');
    const [selectedItem, setSelectedItem] = useState(null);
 
+   // семестры
+   const [currentSemestr, setCurrentSemestr] = useState(null);
+   const [shownSemestr, setShownSemestr] = useState(null);
+   const [otherSemestrs, setOtherSemestrs] = useState([]);
+
+   const isArchive = shownSemestr != null && currentSemestr != null && shownSemestr !== currentSemestr;
+
+   // грузим предметы + оценки для семестра
+   const fetchSubjectsAndGrades = async (gid, targetSemestr) => {
+      try {
+         setSubjectsLoading(true);
+         const subjectsRes = await api.post(`/student/getMySubjects/${gid}`, { semestr: targetSemestr });
+         const subjectList = subjectsRes.data?.subjects?.filter(item => item.subject) ?? [];
+         setSubjects(subjectList);
+         setShownSemestr(subjectsRes.data.shownSemestr);
+         setCurrentSemestr(subjectsRes.data.currentSemestr);
+
+         const gradeResults = await Promise.allSettled(
+            subjectList.map(item => api.get(`/student/getMyGrades/${gid}/${item.subject._id}`))
+         );
+         const gradesMap = {};
+         subjectList.forEach((item, i) => {
+            gradesMap[item.subject._id] = gradeResults[i].status === 'fulfilled'
+               ? gradeResults[i].value.data
+               : null;
+         });
+         setGrades(gradesMap);
+      } catch (err) {
+         setError(err.response?.data?.message || err.message || 'Yükləmə xətası');
+      } finally {
+         setSubjectsLoading(false);
+      }
+   };
+
    useEffect(() => {
-      const fetchAll = async () => {
+      const init = async () => {
          try {
             setLoading(true);
             const profileRes = await api.get('/student/getMyProfile');
             const studentData = profileRes.data;
             setProfile(studentData);
 
-            const groupId = studentData.group?._id ?? studentData.group;
-            if (!groupId) return;
+            const gid = studentData.group?._id ?? studentData.group;
+            const groupSemestr = studentData.group?.semestr;
+            if (!gid) { setLoading(false); return; }
+            setGroupId(gid);
 
-            const subjectsRes = await api.get(`/student/getMySubjects/${groupId}`);
-            const subjectList = subjectsRes.data?.subjects?.filter(item => item.subject) ?? [];
-            setSubjects(subjectList);
-
-            const gradeResults = await Promise.allSettled(
-               subjectList.map(item => api.get(`/student/getMyGrades/${groupId}/${item.subject._id}`))
-            );
-
-            const gradesMap = {};
-            subjectList.forEach((item, i) => {
-               gradesMap[item.subject._id] = gradeResults[i].status === 'fulfilled'
-                  ? gradeResults[i].value.data
-                  : null;
-            });
-            setGrades(gradesMap);
+            // текущий семестр группы + прошлые семестры
+            await fetchSubjectsAndGrades(gid, groupSemestr);
+            const otherRes = await api.post(`/student/getOtherSemestrs/${gid}`, { semestr: groupSemestr });
+            setOtherSemestrs(otherRes.data ?? []);
          } catch (err) {
-            setError(err.message || 'Yükləmə xətası');
+            setError(err.response?.data?.message || err.message || 'Yükləmə xətası');
          } finally {
             setLoading(false);
          }
       };
-      fetchAll();
+      init();
    }, []);
+
+   const handleSelectSemestr = (s) => {
+      if (!groupId || s === shownSemestr) return;
+      fetchSubjectsAndGrades(groupId, s);
+   };
 
    if (loading) return <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]"><span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} /></div>;
    if (error) return <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]"><div role="alert" className="alert alert-error max-w-sm rounded-xl"><span>{error}</span></div></div>;
@@ -79,12 +113,34 @@ function StudentGrades() {
 
    return (
       <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
-         <div className="mb-8">
+         <div className="mb-6">
             <h1 className="text-lg font-bold">Qiymətlərim</h1>
             <p className="text-xs opacity-40 mt-0.5">{profile?.name} {profile?.surname} — bütün fənlər üzrə qiymətlər</p>
          </div>
 
-         {subjects.length === 0 ? (
+         {/* Семестр переключатель */}
+         {currentSemestr != null && (
+            <div className="mb-5">
+               <SemestrSwitcher
+                  currentSemestr={currentSemestr}
+                  shownSemestr={shownSemestr}
+                  otherSemestrs={otherSemestrs}
+                  onSelect={handleSelectSemestr}
+               />
+            </div>
+         )}
+
+         {/* Бейдж архива */}
+         {isArchive && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#6366F1] text-sm font-medium">
+               <FiClock size={14} />
+               Köhnə semestr ({toRoman(shownSemestr)}) — keçmiş qiymətlər
+            </div>
+         )}
+
+         {subjectsLoading ? (
+            <div className="flex justify-center py-16"><span className="loading loading-spinner loading-md" style={{ color: '#8B5CF6' }} /></div>
+         ) : subjects.length === 0 ? (
             <div className="text-center opacity-40 mt-20 text-sm">Heç bir fənn tapılmadı</div>
          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
