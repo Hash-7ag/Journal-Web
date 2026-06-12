@@ -30,7 +30,7 @@ function Groups() {
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [step, setStep] = useState(1);
    const [submitting, setSubmitting] = useState(false);
-   const [formData, setFormData] = useState({ profession: '', groupNumber: '', groupShifr: '' });
+   const [formData, setFormData] = useState({ profession: '', groupNumber: '', groupShifr: '', semestr: 1 });
    const [stepError, setStepError] = useState('');
    const [selectedSubjectIds, setSelectedSubjectIds] = useState([]);
    const [subjectSearch, setSubjectSearch] = useState('');
@@ -41,7 +41,7 @@ function Groups() {
    const [draftData, setDraftData] = useState(null);
 
    const [editModal, setEditModal] = useState(null);
-   const [editForm, setEditForm] = useState({ profession: '', groupNumber: '', groupShifr: '' });
+   const [editForm, setEditForm] = useState({ profession: '', groupNumber: '', groupShifr: '', semestr: 1 });
    const [editSubmitting, setEditSubmitting] = useState(false);
    const [editError, setEditError] = useState('');
 
@@ -115,7 +115,7 @@ function Groups() {
    };
 
    const openFreshModal = () => {
-      setFormData({ profession: '', groupNumber: '', groupShifr: '' });
+      setFormData({ profession: '', groupNumber: '', groupShifr: '', semestr: 1 });
       setSelectedSubjectIds([]); setSelectedStudentIds([]);
       setSubjectSearch(''); setStudentSearch('');
       setStep(1); setStepError('');
@@ -125,7 +125,8 @@ function Groups() {
    const saveDraft = (overrides = {}) => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
          profession: formData.profession, groupNumber: formData.groupNumber,
-         groupShifr: formData.groupShifr, selectedSubjectIds, selectedStudentIds, step, ...overrides,
+         groupShifr: formData.groupShifr, semestr: formData.semestr,
+         selectedSubjectIds, selectedStudentIds, step, ...overrides,
       }));
    };
 
@@ -136,7 +137,7 @@ function Groups() {
 
    const handleStep1Next = () => {
       setStepError('');
-      if (!String(formData.profession).trim() || !String(formData.groupNumber).trim() || !String(formData.groupShifr).trim()) {
+      if (!String(formData.profession).trim() || !String(formData.groupNumber).trim() || !String(formData.groupShifr).trim() || !formData.semestr) {
          setStepError('Bütün sahələri doldurun'); return;
       }
       saveDraft({ step: 2 }); setStep(2);
@@ -154,7 +155,8 @@ function Groups() {
          await api.post('/admin/createGroup', {
             profession: formData.profession,
             groupNumber: String(formData.groupNumber),
-            groupShifr: Number(formData.groupShifr),
+            groupShifr: String(formData.groupShifr),
+            semestr: String(formData.semestr),
             subjects: selectedSubjectsPayload,
             students: selectedStudentIds.map(id => ({ student: id })),
          });
@@ -168,14 +170,19 @@ function Groups() {
 
    const openEditGroup = (e, group) => {
       e.stopPropagation();
-      setEditForm({ profession: group.profession ?? '', groupNumber: group.groupNumber ?? '', groupShifr: group.groupShifr ?? '' });
+      setEditForm({ profession: group.profession ?? '', groupNumber: group.groupNumber ?? '', groupShifr: group.groupShifr ?? '', semestr: group.semestr ?? 1 });
       setEditError(''); setEditModal(group);
    };
 
    const handleEditGroup = async () => {
       try {
          setEditSubmitting(true); setEditError('');
-         await api.patch(`/admin/updateGroup/${editModal._id}`, editForm);
+         await api.patch(`/admin/updateGroup/${editModal._id}`, {
+            profession: editForm.profession,
+            groupNumber: String(editForm.groupNumber),
+            groupShifr: String(editForm.groupShifr),
+            semestr: String(editForm.semestr),
+         });
          const groupsRes = await api.get('/admin/getAllGroups');
          setGroups(groupsRes.data.data); setEditModal(null);
       } catch (err) { setEditError(err.response?.data?.message || 'Xəta baş verdi'); }
@@ -240,7 +247,7 @@ function Groups() {
             draftData={draftModal ? draftData : null}
             onContinue={() => {
                if (!draftData) return;
-               setFormData({ profession: draftData.profession ?? '', groupNumber: draftData.groupNumber ?? '', groupShifr: draftData.groupShifr ?? '' });
+               setFormData({ profession: draftData.profession ?? '', groupNumber: draftData.groupNumber ?? '', groupShifr: draftData.groupShifr ?? '', semestr: draftData.semestr ?? 1 });
                setSelectedSubjectIds(draftData.selectedSubjectIds ?? []);
                setSelectedStudentIds(draftData.selectedStudentIds ?? []);
                setStep(draftData.step ?? 2);

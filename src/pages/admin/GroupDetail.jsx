@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../scripts/api';
-import { FiArrowLeft, FiUsers, FiBook, FiHash, FiLayers, FiPlus, FiCheck, FiClock, FiUser, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiBook, FiHash, FiLayers, FiPlus, FiCheck, FiClock, FiUser } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
 import InfoCard from '../../components/ui/InfoCard';
@@ -11,58 +11,71 @@ import SelectModal from '../../components/ui/SelectModal';
 import StudentRow from '../../components/group/StudentRow';
 import SubjectCard from '../../components/group/SubjectCard';
 import StudentInfoModal from '../../components/group/StudentInfoModal';
+import SemestrSwitcher from '../../components/group/SemestrSwitcher';
+import { toRoman } from '../../scripts/roman.js';
 
 function GroupDetail() {
    const { id, semestr } = useParams();
    const navigate = useNavigate();
+
+   const currentSemestr = Number(semestr);   // текущий семестр группы (из URL)
 
    const [group, setGroup] = useState(null);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState('');
    const [activeTab, setActiveTab] = useState('students');
 
+   // семестры
+   const [shownSemestr, setShownSemestr] = useState(currentSemestr);
+   const [otherSemestrs, setOtherSemestrs] = useState([]);
+
    const [allStudents, setAllStudents] = useState([]);
    const [allSubjects, setAllSubjects] = useState([]);
 
    const [studentModal, setStudentModal] = useState(false);
    const [subjectModal, setSubjectModal] = useState(false);
-
    const [selectedStudents, setSelectedStudents] = useState([]);
    const [selectedSubjects, setSelectedSubjects] = useState([]);
-
    const [studentSearch, setStudentSearch] = useState('');
    const [subjectSearch, setSubjectSearch] = useState('');
-
    const [studentPage, setStudentPage] = useState(1);
    const [studentHasMore, setStudentHasMore] = useState(true);
    const [studentLoadingMore, setStudentLoadingMore] = useState(false);
-
    const [subjectPage, setSubjectPage] = useState(1);
    const [subjectHasMore, setSubjectHasMore] = useState(true);
    const [subjectLoadingMore, setSubjectLoadingMore] = useState(false);
-
    const [addingStudent, setAddingStudent] = useState(false);
    const [addingSubject, setAddingSubject] = useState(false);
    const [deletingId, setDeletingId] = useState(null);
    const [modalError, setModalError] = useState('');
    const [infoModal, setInfoModal] = useState(null);
 
-   const fetchGroup = async () => {
+   const isArchive = shownSemestr !== currentSemestr;
+
+   const fetchGroup = async (targetSemestr) => {
       try {
          setLoading(true);
          const [groupRes, studentsRes] = await Promise.all([
-            api.post(`/admin/getGroupById/${id}`, { semestr }),
+            api.post(`/admin/getGroupById/${id}`, { semestr: targetSemestr }),
             api.get(`/admin/getAssignedyStudents/${id}?page=1&pageSize=999`),
          ]);
          setGroup({
             ...groupRes.data,
             students: (studentsRes.data.data ?? []).map(s => ({ student: s })),
          });
+         setShownSemestr(targetSemestr);
       } catch (err) {
          setError(err.response?.data?.message || err.message || 'Yükləmə xətası');
       } finally {
          setLoading(false);
       }
+   };
+
+   const fetchOtherSemestrs = async () => {
+      try {
+         const res = await api.post(`/admin/getOtherSemestrs/${id}`, { semestr: currentSemestr });
+         setOtherSemestrs(res.data ?? []);
+      } catch (err) { console.error(err); }
    };
 
    const fetchAll = async () => {
@@ -82,7 +95,12 @@ function GroupDetail() {
       } catch (err) { console.error(err); }
    };
 
-   useEffect(() => { fetchGroup(); fetchAll(); }, [id]);
+   useEffect(() => { fetchGroup(currentSemestr); fetchOtherSemestrs(); fetchAll(); }, [id]);
+
+   const handleSelectSemestr = (s) => {
+      if (s === shownSemestr) return;
+      fetchGroup(s);
+   };
 
    const loadMoreStudents = async () => {
       if (studentLoadingMore || !studentHasMore) return;
@@ -118,7 +136,7 @@ function GroupDetail() {
          setAddingStudent(true);
          setModalError('');
          await Promise.all(selectedStudents.map(studentId => api.patch('/admin/addStudentToGroup', { groupId: id, studentId })));
-         await fetchGroup(); await fetchAll();
+         await fetchGroup(currentSemestr); await fetchAll();
          setStudentModal(false); setSelectedStudents([]); setStudentSearch('');
       } catch (err) { setModalError(err.response?.data?.message || 'Xəta baş verdi'); }
       finally { setAddingStudent(false); }
@@ -128,7 +146,7 @@ function GroupDetail() {
       try {
          setDeletingId(studentId);
          await api.patch('/admin/deleteStudentFromGroup', { groupId: id, studentId });
-         await fetchGroup();
+         await fetchGroup(shownSemestr);
       } catch (err) { console.error(err); }
       finally { setDeletingId(null); }
    };
@@ -143,7 +161,7 @@ function GroupDetail() {
             const teacherId = subjectData?.teacherId?._id ?? subjectData?.teacherId;
             return api.patch('/admin/addSubjectToGroup', { groupId: id, subjectId, teacherId });
          }));
-         await fetchGroup();
+         await fetchGroup(currentSemestr);
          setSubjectModal(false); setSelectedSubjects([]); setSubjectSearch('');
       } catch (err) { setModalError(err.response?.data?.message || 'Xəta baş verdi'); }
       finally { setAddingSubject(false); }
@@ -153,7 +171,7 @@ function GroupDetail() {
       try {
          setDeletingId(subjectId);
          await api.patch('/admin/deleteSubjectFromGroup', { groupId: id, subjectId });
-         await fetchGroup();
+         await fetchGroup(shownSemestr);
       } catch (err) { console.error(err); }
       finally { setDeletingId(null); }
    };
@@ -214,10 +232,22 @@ function GroupDetail() {
          </div>
 
          {/* Tabs */}
-         <div className="flex gap-2 mb-5">
+         <div className="flex gap-2 mb-4">
             <TabBtn active={activeTab === 'students'} onClick={() => setActiveTab('students')} icon={<PiStudent size={15} />} label="Şagirdlər" count={students.length} />
             <TabBtn active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<FiBook size={15} />} label="Dərslər" count={subjects.length} />
          </div>
+
+         {/* Semestr switcher — только на Dərslər */}
+         {activeTab === 'subjects' && (
+            <div className="mb-5">
+               <SemestrSwitcher
+                  currentSemestr={currentSemestr}
+                  shownSemestr={shownSemestr}
+                  otherSemestrs={otherSemestrs}
+                  onSelect={handleSelectSemestr}
+               />
+            </div>
+         )}
 
          {/* Students tab */}
          {activeTab === 'students' && (
@@ -247,6 +277,14 @@ function GroupDetail() {
                      <FiPlus size={15} /> Fənn əlavə et
                   </button>
                </div>
+
+               {isArchive && (
+                  <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6366F1]/10 border border-[#6366F1]/30 text-[#6366F1] text-sm font-medium">
+                     <FiClock size={14} />
+                     Köhnə semestr ({toRoman(shownSemestr)})
+                  </div>
+               )}
+
                {subjects.length === 0 ? (
                   <EmptyState icon={<FiBook size={28} />} text="Heç bir fənn tapılmadı" />
                ) : (
@@ -254,7 +292,15 @@ function GroupDetail() {
                      {subjects.map((item, index) => {
                         const s = item.subject ?? item;
                         const sid = typeof s === 'object' ? s._id : s;
-                        return <SubjectCard key={sid ?? index} item={item} deletingId={deletingId} onDelete={handleDeleteSubject} onClick={() => navigate(`/groups/${id}/${sid}`)} />;
+                        return (
+                           <SubjectCard
+                              key={sid ?? index}
+                              item={item}
+                              deletingId={deletingId}
+                              onDelete={handleDeleteSubject}
+                              onClick={() => navigate(`/groups/${id}/subject/${sid}/${shownSemestr}`)}
+                           />
+                        );
                      })}
                   </div>
                )}
@@ -304,7 +350,7 @@ function GroupDetail() {
                            {teacher && <div className="flex items-center gap-1 text-xs opacity-50 mt-0.5"><FiUser size={10} />{teacher.name} {teacher.surname}</div>}
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
-                           {s.semestr && <span className="text-xs opacity-40">{s.semestr}-ci semestr</span>}
+                           {s.semestr && <span className="text-xs opacity-40">{toRoman(s.semestr)} semestr</span>}
                            <div className="flex items-center gap-2">
                               {s.kredit && <span className="text-xs opacity-40">{s.kredit} kredit</span>}
                               {s.totalHours && <div className="flex items-center gap-0.5 text-xs opacity-40"><FiClock size={10} />{s.totalHours}h</div>}

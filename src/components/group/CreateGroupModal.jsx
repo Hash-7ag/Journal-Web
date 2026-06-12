@@ -1,6 +1,7 @@
 import React from 'react';
 import { FiSearch, FiCheck, FiUser, FiClock, FiX, FiAlertCircle } from 'react-icons/fi';
 import InfiniteList from '../ui/InfiniteList';
+import SemestrPicker from './SemestrPicker';
 
 function CreateGroupModal({
    step, formData, onFormChange, stepError, onClose,
@@ -54,6 +55,10 @@ function CreateGroupModal({
                            <input type="number" value={formData.groupShifr} onChange={e => onFormChange('groupShifr', e.target.value)}
                               className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm" placeholder="Məs: 240101" />
                         </div>
+                     </div>
+                     <div className="flex flex-col gap-2 mt-1">
+                        <label className="text-xs font-medium opacity-50 ml-1">Semestr</label>
+                        <SemestrPicker value={formData.semestr} onChange={v => onFormChange('semestr', v)} />
                      </div>
                   </div>
                )}

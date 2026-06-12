@@ -23,7 +23,7 @@ const parseMonthStr = (str) => {
 const colors = ['from-[#8B5CF6] to-[#3B82F6]', 'from-[#3B82F6] to-[#60A5FA]', 'from-[#8B5CF6] to-[#A78BFA]', 'from-[#6366F1] to-[#8B5CF6]'];
 
 function GroupSubjectDetail() {
-   const { id, subjectId } = useParams();
+   const { id, subjectId, semestr } = useParams();
    const navigate = useNavigate();
 
    const [subject, setSubject] = useState(null);
@@ -136,7 +136,7 @@ function GroupSubjectDetail() {
          try {
             setLoading(true);
             const [groupRes, studentsRes, gradesRes] = await Promise.all([
-               api.get(`/admin/getGroupById/${id}`),
+               api.post(`/admin/getGroupById/${id}`, { semestr: Number(semestr) }),
                api.get(`/admin/getAssignedyStudents/${id}?page=1&pageSize=999`),
                api.get(`/admin/getGrades/${id}/${subjectId}`),
             ]);

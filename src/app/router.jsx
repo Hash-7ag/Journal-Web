@@ -82,7 +82,7 @@ export const router = createBrowserRouter([
          { path: "groups", element: <PrivateGuard allowedRole="admin"><Groups /></PrivateGuard> },
          { path: "groups/:id/:semestr", element: <PrivateGuard allowedRole="admin"><GroupDetail /></PrivateGuard> },
          { path: "subjects", element: <PrivateGuard allowedRole="admin"><Subjects /></PrivateGuard> },
-         { path: "groups/:id/:subjectId", element: <PrivateGuard allowedRole="admin"><GroupSubjectDetail /></PrivateGuard> },
+         { path: "groups/:id/subject/:subjectId/:semestr", element: <PrivateGuard allowedRole="admin"><GroupSubjectDetail /></PrivateGuard> },
          { path: "students", element: <PrivateGuard allowedRole="admin"><Students /></PrivateGuard> },
 
          // Student
