@@ -1,7 +1,7 @@
-import axios from "axios";
-import { getUserStoreData, clearUserStoreData } from "../store/userStore.js";
+import axios from 'axios';
+import { getUserStoreData, clearUserStoreData } from '../store/userStore.js';
 
-const baseApi = "https://journal-p8ru.onrender.com/api";
+const baseApi = 'https://journal-p8ru.onrender.com/api';
 
 const api = axios.create({
   baseURL: baseApi,
@@ -19,9 +19,7 @@ api.interceptors.response.use(
     if (!error.response) return Promise.reject(error);
 
     const status = error.response.status;
-    const isAuthEndpoint =
-      originalRequest?.url?.includes("loginAs") ||
-      originalRequest?.url?.includes("refreshToken");
+    const isAuthEndpoint = originalRequest?.url?.includes('loginAs') || originalRequest?.url?.includes('refreshToken');
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
@@ -31,7 +29,7 @@ api.interceptors.response.use(
           isRefreshing = true;
 
           // LocalStorage dən rolu alırıq
-          const role = getUserStoreData()?.role || "admin";
+          const role = getUserStoreData()?.role || 'admin';
           refreshPromise = api.post(`/auth/${role}/refreshToken`);
         }
 
@@ -45,12 +43,12 @@ api.interceptors.response.use(
         refreshPromise = null;
 
         const currentPath = window.location.pathname;
-        const publicPaths = ["/", "/login", "/changePassword"];
+        const publicPaths = ['/', '/login', '/changePassword'];
 
         // Только если не на публичной странице — редиректим
         if (!publicPaths.includes(currentPath)) {
           clearUserStoreData();
-          window.location.href = "/";
+          window.location.href = '/';
         }
 
         return Promise.reject(refreshErr);

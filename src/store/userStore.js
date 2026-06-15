@@ -1,4 +1,4 @@
-const STORAGE_KEY = "app_user_role";
+const STORAGE_KEY = 'app_user_role';
 
 // ── Helpers ──────────────────────────────────────────────
 const getDefaultData = () => ({ role: null });

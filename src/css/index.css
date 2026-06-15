@@ -4,22 +4,22 @@
 @plugin "daisyui";
 
 :root {
-   --color-primary: #8B5CF6;
-   --color-primary-soft: #A78BFA;
-   --color-primary-glow: #C4B5FD;
-   --color-blue: #3B82F6;
-   --color-blue-soft: #60A5FA;
-   --color-blue-glow: #93C5FD;
+  --color-primary: #8b5cf6;
+  --color-primary-soft: #a78bfa;
+  --color-primary-glow: #c4b5fd;
+  --color-blue: #3b82f6;
+  --color-blue-soft: #60a5fa;
+  --color-blue-glow: #93c5fd;
 }
 
-[data-theme="light"] {
-   --bg-base: #F8F9FB;
-   --bg-soft: #EEF1F6;
-   --border: #D6DAE3;
+[data-theme='light'] {
+  --bg-base: #f8f9fb;
+  --bg-soft: #eef1f6;
+  --border: #d6dae3;
 }
 
-[data-theme="dark"] {
-   --bg-base: #1A1D24;
-   --bg-soft: #0F1115;
-   --border: #2A2F3A;
+[data-theme='dark'] {
+  --bg-base: #1a1d24;
+  --bg-soft: #0f1115;
+  --border: #2a2f3a;
 }
