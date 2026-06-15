@@ -4,11 +4,11 @@ import api from '../../scripts/api.js';
 import { FiArrowLeft, FiUser, FiBook, FiAlertCircle, FiPlus, FiX } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
-import StudentInfoModal from '../../components/group/StudentInfoModal';
-import AttendanceModal from '../../components/attendance/AttendanceModal';
-import AttendanceCalendarModal from '../../components/attendance/AttendanceCalendarModal';
-import TabBtn from '../../components/ui/TabBtn';
-import EmptyState from '../../components/ui/EmptyState';
+import StudentInfoModal from '../../components/group/StudentInfoModal.jsx';
+import AttendanceModal from '../../components/attendance/AttendanceModal.jsx';
+import AttendanceCalendarModal from '../../components/attendance/AttendanceCalendarModal.jsx';
+import TabBtn from '../../components/ui/TabBtn.jsx';
+import EmptyState from '../../components/ui/EmptyState.jsx';
 
 const GRADE_LIMITS = { collegium1: 10, collegium2: 10, coursework: 20, attendence: 10, exam: 50 };
 const AZ_MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
