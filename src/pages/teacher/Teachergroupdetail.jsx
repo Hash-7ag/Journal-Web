@@ -11,6 +11,7 @@ import TabBtn from '../../components/ui/TabBtn.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import AddAttendanceWizard from '../../components/attendance/AddAttendanceWizard.jsx';
 import LessonCard from '../../components/attendance/LessonCard.jsx';
+import EditTitleModal from '../../components/attendance/EditTitleModal.jsx';
 
 const GRADE_LIMITS = {
   collegium1: 10,
@@ -76,6 +77,10 @@ function TeacherGroupDetail() {
   const [draftQuestion, setDraftQuestion] = useState(false); // модалка "продолжить?"
   const [draftData, setDraftData] = useState(null); // данные черновика для возобновления
 
+  const [editTitleDoc, setEditTitleDoc] = useState(null);
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [editTitleError, setEditTitleError] = useState('');
+
   const [students, setStudents] = useState([]);
   const [studentModal, setStudentModal] = useState(null);
   const [grades, setGrades] = useState(null);
@@ -103,6 +108,11 @@ function TeacherGroupDetail() {
   const [attModal, setAttModal] = useState(false);
 
   const [lessonCardModal, setLessonCardModal] = useState(null); // выбранный doc для карточки
+
+  const [titlesData, setTitlesData] = useState([]); // темы за месяц (с присоединённой статистикой)
+  const [titlesMonths, setTitlesMonths] = useState([]); // доступные месяцы тем
+  const [titlesSelectedMonth, setTitlesSelectedMonth] = useState(null);
+  const [titlesLoading, setTitlesLoading] = useState(false);
 
   const [gradeModal, setGradeModal] = useState(false);
   const [gradeType, setGradeType] = useState('');
@@ -166,6 +176,90 @@ function TeacherGroupDetail() {
       if (err.response?.status === 404) setAttendanceData([]);
     } finally {
       setAttendanceLoading(false);
+    }
+  };
+
+  // темы за месяц + присоединённая статистика посещаемости
+  const fetchTitles = async (month, year) => {
+    try {
+      setTitlesLoading(true);
+      const monthStr = `${String(month).padStart(2, '0')}-${year}`;
+      // параллельно: темы и посещаемость за месяц
+      const [titlesRes, attRes] = await Promise.all([
+        api.get(`/teacher/getTitles/${group}/${subject}?date=${monthStr}`).catch((e) => {
+          if (e.response?.status === 404) return { data: [] };
+          throw e;
+        }),
+        api.get(`/teacher/getAttendence/${group}/${subject}?date=${monthStr}`).catch((e) => {
+          if (e.response?.status === 404) return { data: [] };
+          throw e;
+        }),
+      ]);
+      const titles = titlesRes.data ?? [];
+      const attendances = attRes.data ?? [];
+
+      // для каждой темы найти её посещаемость и посчитать
+      const enriched = titles.map((t) => {
+        const att = attendances.find((a) => (a.title?._id ?? a.title) === t._id);
+        const total = att?.students?.length ?? 0;
+        const present = att?.students?.filter((s) => s.attendence).length ?? 0;
+        const absent = total - present;
+        return { ...t, _att: { total, present, absent, hasAtt: !!att } };
+      });
+
+      setTitlesData(enriched);
+    } catch (err) {
+      if (err.response?.status === 404) setTitlesData([]);
+      else setTitlesData([]);
+    } finally {
+      setTitlesLoading(false);
+    }
+  };
+
+  const handleTitlesTab = async () => {
+    setActiveTab('titles');
+    setTitlesLoading(true);
+    try {
+      const res = await api.get(`/teacher/getMonthForTitles/${group}/${subject}`);
+      const parsed = (res.data ?? []).map(parseMonthStr);
+      setTitlesMonths(parsed);
+      if (parsed.length > 0) {
+        const latest = parsed[parsed.length - 1];
+        setTitlesSelectedMonth(latest);
+        await fetchTitles(latest.month, latest.year);
+      } else {
+        const now = new Date();
+        setTitlesSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
+        setTitlesData([]);
+        setTitlesLoading(false);
+      }
+    } catch {
+      const now = new Date();
+      setTitlesSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
+      setTitlesData([]);
+      setTitlesLoading(false);
+    }
+  };
+
+  const handleSaveTitle = async (form) => {
+    try {
+      setSavingTitle(true);
+      setEditTitleError('');
+      const d = new Date(editTitleDoc.date);
+      const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+      await api.patch(`/teacher/updateTitle/${editTitleDoc._id}`, {
+        title: form.title,
+        date: dateStr, // текущая дата темы (бэк требует date)
+        hour: String(form.hour),
+        type: form.type,
+      });
+      setEditTitleDoc(null);
+      // перезагрузить темы текущего месяца
+      if (titlesSelectedMonth) await fetchTitles(titlesSelectedMonth.month, titlesSelectedMonth.year);
+    } catch (err) {
+      setEditTitleError(err.response?.data?.message || 'Xəta baş verdi');
+    } finally {
+      setSavingTitle(false);
     }
   };
 
@@ -447,6 +541,12 @@ function TeacherGroupDetail() {
           icon={<PiStudent size={14} />}
           label="Qayıblar"
         />
+        <TabBtn
+          active={activeTab === 'titles'}
+          onClick={handleTitlesTab}
+          icon={<FiBook size={14} />}
+          label="Mövzular"
+        />
       </div>
 
       {/* Grades tab */}
@@ -724,6 +824,63 @@ function TeacherGroupDetail() {
         </div>
       )}
 
+      {/* Mövzular tab */}
+      {activeTab === 'titles' && (
+        <div className="flex flex-col gap-5">
+          {titlesMonths.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {titlesMonths.map((m) => (
+                <button
+                  key={`${m.month}-${m.year}`}
+                  onClick={() => {
+                    setTitlesSelectedMonth(m);
+                    fetchTitles(m.month, m.year);
+                  }}
+                  className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    titlesSelectedMonth?.month === m.month && titlesSelectedMonth?.year === m.year
+                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+                      : 'bg-base-200/50 border border-base-200 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  {AZ_MONTHS[m.month - 1]} {m.year}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {titlesLoading ? (
+            <div className="flex justify-center py-10">
+              <span className="loading loading-spinner loading-md" style={{ color: '#8B5CF6' }} />
+            </div>
+          ) : titlesData.length === 0 ? (
+            <EmptyState icon={<FiBook size={28} />} text="Bu ay üçün mövzu yoxdur" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {titlesData.map((t) => {
+                const d = new Date(t.date);
+                const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+                return (
+                  <LessonCard
+                    key={t._id}
+                    title={t.title}
+                    type={t.type}
+                    date={dateStr}
+                    hour={t.hour}
+                    total={t._att.total}
+                    present={t._att.present}
+                    absent={t._att.absent}
+                    onEdit={() => {
+                      setEditTitleDoc(t);
+                      setEditTitleError('');
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Вопрос: продолжить черновик? */}
       {draftQuestion && (
         <div className="modal modal-open z-50" role="dialog">
@@ -779,6 +936,22 @@ function TeacherGroupDetail() {
           onClose={() => setWizardOpen(false)}
         />
       )}
+
+      {editTitleDoc &&
+        (() => {
+          const d = new Date(editTitleDoc.date);
+          const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          return (
+            <EditTitleModal
+              titleDoc={editTitleDoc}
+              dateStr={dateStr}
+              onSave={handleSaveTitle}
+              onClose={() => setEditTitleDoc(null)}
+              saving={savingTitle}
+              error={editTitleError}
+            />
+          );
+        })()}
 
       {/* Карточка урока по клику на иконку в таблице */}
       {lessonCardModal &&
