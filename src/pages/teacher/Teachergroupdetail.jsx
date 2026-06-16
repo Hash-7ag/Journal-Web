@@ -9,6 +9,8 @@ import AttendanceModal from '../../components/attendance/AttendanceModal.jsx';
 import AttendanceCalendarModal from '../../components/attendance/AttendanceCalendarModal.jsx';
 import TabBtn from '../../components/ui/TabBtn.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
+import AddAttendanceWizard from '../../components/attendance/AddAttendanceWizard.jsx';
+import LessonCard from '../../components/attendance/LessonCard.jsx';
 
 const GRADE_LIMITS = {
   collegium1: 10,
@@ -68,6 +70,12 @@ function TeacherGroupDetail() {
   const { group, subject } = useParams();
   const navigate = useNavigate();
 
+  const DRAFT_KEY = `attendance_draft_${group}_${subject}`;
+
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [draftQuestion, setDraftQuestion] = useState(false); // модалка "продолжить?"
+  const [draftData, setDraftData] = useState(null); // данные черновика для возобновления
+
   const [students, setStudents] = useState([]);
   const [studentModal, setStudentModal] = useState(null);
   const [grades, setGrades] = useState(null);
@@ -93,6 +101,8 @@ function TeacherGroupDetail() {
   const [attError, setAttError] = useState('');
   const [attSuccess, setAttSuccess] = useState('');
   const [attModal, setAttModal] = useState(false);
+
+  const [lessonCardModal, setLessonCardModal] = useState(null); // выбранный doc для карточки
 
   const [gradeModal, setGradeModal] = useState(false);
   const [gradeType, setGradeType] = useState('');
@@ -203,18 +213,14 @@ function TeacherGroupDetail() {
     fetchAll();
   }, [group, subject]);
 
-  const buildTable = () => {
-    const dayMap = {};
-    attendanceData.forEach((doc) => {
-      const d = new Date(doc.date);
-      dayMap[d.getDate()] = doc;
+  const buildColumns = () => {
+    return [...attendanceData].sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      if (da !== db) return da - db;
+      // тот же день — по времени создания
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-    return {
-      days: Object.keys(dayMap)
-        .map(Number)
-        .sort((a, b) => a - b),
-      dayMap,
-    };
   };
 
   const getAttendenceForStudent = (dayDoc, studentId) => {
@@ -256,6 +262,74 @@ function TeacherGroupDetail() {
     } finally {
       setSavingAtt(false);
     }
+  };
+
+  // создать тему → вернуть id
+  const handleCreateTitle = async (dateStr, titleForm) => {
+    const res = await api.post(`/teacher/createTitle/${group}/${subject}`, {
+      title: titleForm.title,
+      date: dateStr,
+      hour: String(titleForm.hour),
+      type: titleForm.type,
+    });
+    return res.data.data._id;
+  };
+
+  // обновить тему
+  const handleUpdateTitle = async (titleId, dateStr, titleForm) => {
+    await api.patch(`/teacher/updateTitle/${titleId}`, {
+      title: titleForm.title,
+      date: dateStr,
+      hour: String(titleForm.hour),
+      type: titleForm.type,
+    });
+  };
+
+  // финальная отправка посещаемости
+  const handleSubmitAttendanceFinal = async (titleId, dateStr, studentsPayload) => {
+    await api.post('/teacher/addAttendence', {
+      date: dateStr,
+      subject,
+      group,
+      title: titleId,
+      students: studentsPayload,
+    });
+    // успех — чистим черновик, закрываем, перезагружаем
+    localStorage.removeItem(DRAFT_KEY);
+    setWizardOpen(false);
+    setDraftData(null);
+    setAllBusyDates((prev) => {
+      const next = new Set(prev);
+      next.add(dateStr);
+      return next;
+    });
+    await handleAttendanceTab(); // перезагрузка вкладки посещаемости
+  };
+
+  // сохранение черновика (wizard зовёт при переходах)
+  const handleDraftChange = (draft) => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  const openWizard = () => {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        // черновик есть только если тема уже создана (titleId) — есть что продолжить
+        if (parsed?.titleId) {
+          setDraftData(parsed);
+          setDraftQuestion(true);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    // свежий старт
+    setDraftData(null);
+    setCalendarViewDate(new Date());
+    setWizardOpen(true);
   };
 
   const getStudentGrade = (studentId, type) => {
@@ -344,7 +418,7 @@ function TeacherGroupDetail() {
     { key: 'exam', label: 'İmtahan', max: 50, color: 'text-orange-400' },
   ];
 
-  const { days, dayMap } = buildTable();
+  const columns = buildColumns();
 
   return (
     <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
@@ -505,12 +579,7 @@ function TeacherGroupDetail() {
               {selectedMonth ? `${AZ_MONTHS[selectedMonth.month - 1]} ${selectedMonth.year}` : ''}
             </h2>
             <button
-              onClick={() => {
-                setCalendarViewDate(new Date());
-                setCalendarModal(true);
-                setAttError('');
-                setAttSuccess('');
-              }}
+              onClick={openWizard}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
             >
               <FiPlus size={15} /> Davamiyyət əlavə et
@@ -520,7 +589,7 @@ function TeacherGroupDetail() {
           {attError && <span className="text-red-400 text-xs">{attError}</span>}
           {attSuccess && <span className="text-emerald-400 text-xs">{attSuccess}</span>}
 
-          {!attendanceLoading && days.length === 0 && (
+          {!attendanceLoading && columns.length === 0 && (
             <EmptyState icon={<PiStudent size={28} />} text="Bu ay üçün davamiyyət yoxdur" />
           )}
 
@@ -528,7 +597,7 @@ function TeacherGroupDetail() {
             <div className="flex justify-center py-10">
               <span className="loading loading-spinner loading-md" style={{ color: '#8B5CF6' }} />
             </div>
-          ) : days.length > 0 ? (
+          ) : columns.length > 0 ? (
             <div
               ref={tableRef}
               className="overflow-x-auto rounded-2xl border border-base-200 shadow-sm w-full p-4"
@@ -547,14 +616,40 @@ function TeacherGroupDetail() {
                     <th className="sticky left-0 top-0 z-20 bg-base-100 text-left px-4 py-3 font-semibold text-xs opacity-50 min-w-[180px] border-r border-base-200">
                       Şagird
                     </th>
-                    {days.map((day) => (
-                      <th
-                        key={day}
-                        className="py-3 text-center text-xs font-semibold opacity-50 w-10 min-w-[40px] bg-base-100 sticky top-0 z-[5]"
-                      >
-                        {day}
-                      </th>
-                    ))}
+                    {columns.map((doc) => {
+                      const d = new Date(doc.date);
+                      return (
+                        <th
+                          key={doc._id}
+                          className="py-2 text-center text-xs font-semibold opacity-50 w-12 min-w-[48px] bg-base-100 sticky top-0 z-[5]"
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <span>{d.getDate()}</span>
+                            <button
+                              onClick={() => setLessonCardModal(doc)}
+                              title={doc.title?.title ?? ''}
+                              className="w-5 h-5 rounded-md flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#8B5CF6] transition-all duration-200"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="13"
+                                height="13"
+                                stroke="currentColor"
+                                fill="none"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="16" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12.01" y2="8" />
+                              </svg>
+                            </button>
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -601,10 +696,10 @@ function TeacherGroupDetail() {
                             </button>
                           </div>
                         </td>
-                        {days.map((day) => {
-                          const att = getAttendenceForStudent(dayMap[day], sid);
+                        {columns.map((doc) => {
+                          const att = getAttendenceForStudent(doc, sid);
                           return (
-                            <td key={day} className="py-2.5 text-center w-10">
+                            <td key={doc._id} className="py-2.5 text-center w-12">
                               {att === null ? (
                                 <span className="text-xs opacity-20">—</span>
                               ) : att === true ? (
@@ -628,6 +723,95 @@ function TeacherGroupDetail() {
           ) : null}
         </div>
       )}
+
+      {/* Вопрос: продолжить черновик? */}
+      {draftQuestion && (
+        <div className="modal modal-open z-50" role="dialog">
+          <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-6 max-w-sm flex flex-col gap-4">
+            <h3 className="text-base font-bold">Yarımçıq davamiyyət var</h3>
+            <p className="text-sm opacity-60">Əvvəlki davamiyyəti davam etdirmək istəyirsiniz?</p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => {
+                  // продолжить — открыть wizard с шага 3 (тема уже создана)
+                  setDraftQuestion(false);
+                  setWizardOpen(true);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm shadow-md hover:opacity-90 transition-all duration-200"
+              >
+                Davam et
+              </button>
+              <button
+                onClick={() => {
+                  // отказ — удалить черновик из стейта (тема на бэке пока остаётся)
+                  localStorage.removeItem(DRAFT_KEY);
+                  setDraftData(null);
+                  setDraftQuestion(false);
+                  setCalendarViewDate(new Date());
+                  setWizardOpen(true);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
+              >
+                Yenidən başla
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setDraftQuestion(false)} />
+        </div>
+      )}
+
+      {/* Wizard */}
+      {wizardOpen && (
+        <AddAttendanceWizard
+          students={students}
+          viewDate={calendarViewDate}
+          onChangeViewDate={setCalendarViewDate}
+          allBusyDates={allBusyDates}
+          initialStep={draftData?.titleId ? 3 : 1}
+          initialDate={draftData?.date ?? ''}
+          initialTitleForm={draftData?.titleForm ?? { title: '', hour: '1', type: 'N' }}
+          initialAttStudents={draftData?.attStudents ?? null}
+          initialTitleId={draftData?.titleId ?? null}
+          onCreateTitle={handleCreateTitle}
+          onUpdateTitle={handleUpdateTitle}
+          onSubmitAttendance={handleSubmitAttendanceFinal}
+          onDraftChange={handleDraftChange}
+          onClose={() => setWizardOpen(false)}
+        />
+      )}
+
+      {/* Карточка урока по клику на иконку в таблице */}
+      {lessonCardModal &&
+        (() => {
+          const doc = lessonCardModal;
+          const d = new Date(doc.date);
+          const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          const total = doc.students?.length ?? 0;
+          const present = doc.students?.filter((s) => s.attendence).length ?? 0;
+          const absent = total - present;
+          return (
+            <div className="modal modal-open z-50" role="dialog">
+              <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-6 max-w-sm flex flex-col gap-4">
+                <LessonCard
+                  title={doc.title?.title ?? '—'}
+                  type={doc.title?.type ?? 'N'}
+                  date={dateStr}
+                  hour={doc.title?.hour ?? '—'}
+                  total={total}
+                  present={present}
+                  absent={absent}
+                />
+                <button
+                  onClick={() => setLessonCardModal(null)}
+                  className="py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
+                >
+                  Bağla
+                </button>
+              </div>
+              <div className="modal-backdrop" onClick={() => setLessonCardModal(null)} />
+            </div>
+          );
+        })()}
 
       {/* Grade modal */}
       {gradeModal && (

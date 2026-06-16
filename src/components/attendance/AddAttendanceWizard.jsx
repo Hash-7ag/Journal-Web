@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiX, FiArrowLeft, FiCheck, FiCalendar, FiBook, FiUser, FiClock, FiUsers } from 'react-icons/fi';
+import LessonCard from './LessonCard';
 
 const AZ_MONTHS = [
   'Yanvar',
@@ -31,16 +32,12 @@ function CalendarStep({ viewDate, onChangeViewDate, allBusyDates, selectedDate, 
   const startOffset = (firstDay + 6) % 7;
   const mm = String(month + 1).padStart(2, '0');
 
-  const busyDays = new Set(
-    [...allBusyDates].filter((key) => key.endsWith(`-${mm}-${year}`)).map((key) => parseInt(key.split('-')[0], 10)),
-  );
-
   const cells = [];
   for (let i = 0; i < startOffset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
   const handleClick = (day) => {
-    if (!day || busyDays.has(day)) return;
+    if (!day) return;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const picked = new Date(year, month, day);
@@ -88,22 +85,20 @@ function CalendarStep({ viewDate, onChangeViewDate, allBusyDates, selectedDate, 
           today.setHours(0, 0, 0, 0);
           const thisDay = day ? new Date(year, month, day) : null;
           const isFuture = thisDay && thisDay > today;
-          const isBusy = day && busyDays.has(day);
           const isSelected = day && day === selectedDay;
-          const isDisabled = !day || isBusy || isFuture;
+          const isDisabled = !day || isFuture;
           return (
             <button
               key={i}
               disabled={isDisabled}
               onClick={() => handleClick(day)}
-              className={`aspect-square rounded-xl text-sm font-semibold transition-all duration-150 ${!day ? 'invisible' : ''} ${isSelected ? 'bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] text-white shadow-md' : isBusy || isFuture ? 'opacity-25 cursor-not-allowed bg-base-200' : 'hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#3B82F6] hover:text-white hover:shadow-md cursor-pointer'}`}
+              className={`aspect-square rounded-xl text-sm font-semibold transition-all duration-150 ${!day ? 'invisible' : ''} ${isSelected ? 'bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] text-white shadow-md' : isFuture ? 'opacity-25 cursor-not-allowed bg-base-200' : 'hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#3B82F6] hover:text-white hover:shadow-md cursor-pointer'}`}
             >
               {day}
             </button>
           );
         })}
       </div>
-      <p className="text-xs opacity-30 text-center">Boz rəngli günlər artıq mövcuddur</p>
     </div>
   );
 }
@@ -111,8 +106,6 @@ function CalendarStep({ viewDate, onChangeViewDate, allBusyDates, selectedDate, 
 // ---- Главный wizard ----
 function AddAttendanceWizard({
   students,
-  groupName,
-  subjectName,
   // дата
   viewDate,
   onChangeViewDate,
@@ -307,16 +300,48 @@ function AddAttendanceWizard({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium opacity-50 ml-1">Saat</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={7}
-                  value={titleForm.hour}
-                  onChange={(e) => updateTitleField('hour', e.target.value)}
-                  className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                  placeholder="Saat (1 - 7)"
-                />
+                <label className="text-xs font-medium opacity-50 ml-1">Dərs müddəti (saat)</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = Number(titleForm.hour) || 1;
+                      updateTitleField('hour', String(Math.max(1, cur - 1)));
+                    }}
+                    className="w-11 h-11 rounded-xl border border-base-200 bg-base-200/50 flex items-center justify-center text-lg font-bold opacity-70 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={titleForm.hour}
+                    onChange={(e) => {
+                      let v = e.target.value;
+                      if (v === '') {
+                        updateTitleField('hour', '');
+                        return;
+                      }
+                      let n = Number(v);
+                      if (n < 1) n = 1;
+                      if (n > 30) n = 30;
+                      updateTitleField('hour', String(n));
+                    }}
+                    className="input flex-1 text-center pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm font-semibold"
+                    placeholder="1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = Number(titleForm.hour) || 0;
+                      updateTitleField('hour', String(Math.min(30, cur + 1)));
+                    }}
+                    className="w-11 h-11 rounded-xl border border-base-200 bg-base-200/50 flex items-center justify-center text-lg font-bold opacity-70 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-medium opacity-50 ml-1">Dərs tipi</label>
@@ -383,40 +408,15 @@ function AddAttendanceWizard({
           {/* Шаг 4 — Превью */}
           {step === 4 && (
             <div className="flex flex-col gap-4">
-              <div className="rounded-2xl border border-base-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] px-5 py-4 text-white">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-base">{titleForm.title}</h4>
-                    <span className="text-xs px-2 py-0.5 rounded-lg bg-white/20 font-semibold">{typeLabel}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs opacity-90">
-                    <span className="flex items-center gap-1">
-                      <FiCalendar size={11} />
-                      {date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FiClock size={11} />
-                      {titleForm.hour} saat
-                    </span>
-                  </div>
-                </div>
-                <div className="p-5 flex flex-col gap-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="flex flex-col items-center p-3 rounded-xl bg-base-200/50">
-                      <span className="text-xs opacity-40">Cəmi</span>
-                      <span className="text-lg font-bold">{students.length}</span>
-                    </div>
-                    <div className="flex flex-col items-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
-                      <span className="text-xs opacity-40">Gəldi</span>
-                      <span className="text-lg font-bold text-emerald-500">{presentCount}</span>
-                    </div>
-                    <div className="flex flex-col items-center p-3 rounded-xl bg-red-50 dark:bg-red-900/20">
-                      <span className="text-xs opacity-40">Gəlmədi</span>
-                      <span className="text-lg font-bold text-red-500">{absentCount}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <LessonCard
+                title={titleForm.title}
+                type={titleForm.type}
+                date={date}
+                hour={titleForm.hour}
+                total={students.length}
+                present={presentCount}
+                absent={absentCount}
+              />
               <button
                 onClick={() => setStep(2)}
                 className="text-xs text-[#8B5CF6] opacity-70 hover:opacity-100 transition-opacity self-start"
