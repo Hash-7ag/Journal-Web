@@ -171,6 +171,7 @@ function TeacherGroupDetail() {
 
   const handleAttendanceTab = async () => {
     setActiveTab('attendance');
+    setAttendanceLoading(true); // ← сразу показать спиннер
     try {
       const res = await api.get(`/teacher/months/${group}/${subject}`);
       const parsed = (res.data ?? []).map(parseMonthStr);
@@ -196,16 +197,15 @@ function TeacherGroupDetail() {
         await fetchAttendance(latest.month, latest.year);
       } else {
         const now = new Date();
-        setSelectedMonth({
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-        });
+        setSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
         setAttendanceData([]);
+        setAttendanceLoading(false); // ← нет месяцев — выключить
       }
     } catch {
       const now = new Date();
       setSelectedMonth({ month: now.getMonth() + 1, year: now.getFullYear() });
       setAttendanceData([]);
+      setAttendanceLoading(false); // ← ошибка — выключить
     }
   };
 
