@@ -15,7 +15,7 @@ function Header() {
   const [logoHovered, setLogoHovered] = useState(false);
   const [profileInitials, setProfileInitials] = useState('');
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [logoutModal, setLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   useEffect(() => {
