@@ -14,6 +14,7 @@ function Login() {
     student: 'Şagird',
     admin: 'Admin',
     teacher: 'Müəllim',
+    parent: 'Valideyn',
   };
   const roleLabel = roleLabels[role] || capitalize(role);
 
@@ -32,6 +33,7 @@ function Login() {
     student: 'from-[#3B82F6] to-[#60A5FA]',
     teacher: 'from-[#8B5CF6] to-[#A78BFA]',
     admin: 'from-[#8B5CF6] to-[#3B82F6]',
+    parent: 'from-[#6366F1] to-[#8B5CF6]',
   };
   const gradientClass = roleColors[role] || 'from-[#8B5CF6] to-[#3B82F6]';
 
@@ -49,6 +51,7 @@ function Login() {
       admin: '/home',
       student: '/student/home',
       teacher: '/teacher/home',
+      parent: '/parent/home',
     };
 
     try {

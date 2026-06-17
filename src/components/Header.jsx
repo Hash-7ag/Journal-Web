@@ -80,9 +80,28 @@ function Header() {
     { to: '/teacher/groups', label: 'Qruplar', icon: <FiGrid size={15} /> },
   ];
 
-  const navLinks = role === 'student' ? studentLinks : role === 'teacher' ? teacherLinks : adminLinks;
+  const parentLinks = [
+    { to: '/parent/home', label: 'Profil', icon: <FiHome size={15} /> },
+    { to: '/parent/grades', label: 'Qiymətlər', icon: <FiAward size={15} /> },
+  ];
 
-  const homeLink = role === 'student' ? '/student/home' : role === 'teacher' ? '/teacher/home' : '/home';
+  const navLinks =
+    role === 'student'
+      ? studentLinks
+      : role === 'teacher'
+        ? teacherLinks
+        : role === 'parent'
+          ? parentLinks
+          : adminLinks;
+
+  const homeLink =
+    role === 'student'
+      ? '/student/home'
+      : role === 'teacher'
+        ? '/teacher/home'
+        : role === 'parent'
+          ? '/parent/home'
+          : '/home';
 
   const isActive = (to) => {
     if (to === location.pathname) return true;
@@ -91,7 +110,8 @@ function Header() {
       location.pathname.startsWith(to) &&
       to !== '/home' &&
       to !== '/student/home' &&
-      to !== '/teacher/home'
+      to !== '/teacher/home' &&
+      to !== '/parent/home'
     )
       return true;
     return false;

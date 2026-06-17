@@ -23,11 +23,14 @@ const GroupSubjectDetail = lazy(() => import('../pages/admin/GroupSubjectDetail'
 const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 const Parents = lazy(() => import('../pages/admin/Parents'));
+const ParentHome = lazy(() => import('../pages/parent/ParentHome'));
+const ParentGrades = lazy(() => import('../pages/parent/ParentGrades'));
 
 const homeRoutes = {
   admin: '/home',
   student: '/student/home',
   teacher: '/teacher/home',
+  parent: '/parent/home',
 };
 
 function PublicGuard({ children }) {
@@ -200,6 +203,24 @@ export const router = createBrowserRouter([
         element: (
           <PrivateGuard allowedRole="teacher">
             <TeacherGroupDetail />
+          </PrivateGuard>
+        ),
+      },
+
+      // Parent
+      {
+        path: 'parent/home',
+        element: (
+          <PrivateGuard allowedRole="parent">
+            <ParentHome />
+          </PrivateGuard>
+        ),
+      },
+      {
+        path: 'parent/grades',
+        element: (
+          <PrivateGuard allowedRole="parent">
+            <ParentGrades />
           </PrivateGuard>
         ),
       },

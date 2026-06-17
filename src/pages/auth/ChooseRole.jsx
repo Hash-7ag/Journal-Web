@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setUserStoreData } from '../../store/userStore.js';
-import { FiArrowRight, FiUser, FiShield } from 'react-icons/fi';
+import { FiArrowRight, FiUser, FiShield, FiUsers } from 'react-icons/fi';
 import { PiStudent } from 'react-icons/pi';
 
 function ChooseRole() {
@@ -13,6 +13,13 @@ function ChooseRole() {
   };
 
   const roles = [
+    {
+      key: 'parent',
+      label: 'Valideyn',
+      desc: 'Övladınızın qiymətlərinə baxın',
+      icon: <FiUsers size={22} />,
+      color: 'from-[#6366F1] to-[#8B5CF6]',
+    },
     {
       key: 'student',
       label: 'Tələbə',
