@@ -15,8 +15,8 @@ import {
 } from 'react-icons/fi';
 import { formatPhone, phoneToRaw } from '../../scripts/usePhoneInput.js';
 
-import Pagination from '../../components/ui/Pagination';
-import ResetPasswordBlock from '../../components/ui/ResetPasswordBlock';
+import Pagination from '../../components/ui/Pagination.jsx';
+import ResetPasswordBlock from '../../components/ui/ResetPasswordBlock.jsx';
 
 const colors = [
   'from-[#8B5CF6] to-[#3B82F6]',

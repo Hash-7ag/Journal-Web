@@ -22,6 +22,7 @@ const TeacherGroupDetail = lazy(() => import('../pages/teacher/TeacherGroupDetai
 const GroupSubjectDetail = lazy(() => import('../pages/admin/GroupSubjectDetail'));
 const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
+const Parents = lazy(() => import('../pages/admin/Parents'));
 
 const homeRoutes = {
   admin: '/home',
@@ -147,6 +148,14 @@ export const router = createBrowserRouter([
         element: (
           <PrivateGuard allowedRole="admin">
             <Students />
+          </PrivateGuard>
+        ),
+      },
+      {
+        path: 'parents',
+        element: (
+          <PrivateGuard allowedRole="admin">
+            <Parents />
           </PrivateGuard>
         ),
       },

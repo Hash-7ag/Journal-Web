@@ -63,6 +63,7 @@ function Header() {
 
   const adminLinks = [
     { to: '/students', label: 'Şagirdlər', icon: <FiUsers size={15} /> },
+    { to: '/parents', label: 'Valideynlər', icon: <FiUsers size={15} /> },
     { to: '/teachers', label: 'Müəllimlər', icon: <FiUser size={15} /> },
     { to: '/subjects', label: 'Fənlər', icon: <FiBook size={15} /> },
     { to: '/groups', label: 'Qruplar', icon: <FiGrid size={15} /> },
