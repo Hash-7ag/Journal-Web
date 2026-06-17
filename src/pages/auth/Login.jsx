@@ -160,6 +160,15 @@ function Login() {
                 </>
               )}
             </button>
+
+            {/* Forgot password */}
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              className="text-xs opacity-50 hover:opacity-100 hover:text-[#8B5CF6] transition-all duration-200 -mt-2"
+            >
+              Şifrəni unutmusunuz?
+            </button>
           </div>
         </div>
 

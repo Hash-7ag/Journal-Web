@@ -20,6 +20,8 @@ const TeacherHome = lazy(() => import('../pages/teacher/TeacherHome'));
 const TeacherGroups = lazy(() => import('../pages/teacher/TeacherGroups.jsx'));
 const TeacherGroupDetail = lazy(() => import('../pages/teacher/TeacherGroupDetail.jsx'));
 const GroupSubjectDetail = lazy(() => import('../pages/admin/GroupSubjectDetail'));
+const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('../pages/auth/ResetPassword'));
 
 const homeRoutes = {
   admin: '/home',
@@ -73,6 +75,14 @@ export const router = createBrowserRouter([
       {
         path: 'login',
         element: <Login />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPassword />,
+      },
+      {
+        path: 'reset-password',
+        element: <ResetPassword />,
       },
       {
         path: 'changePassword',

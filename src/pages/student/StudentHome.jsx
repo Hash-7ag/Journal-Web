@@ -6,6 +6,7 @@ import { formatPhone, phoneToRaw } from '../../scripts/usePhoneInput.js';
 
 import ProfileCard from '../../components/profile/ProfileCard';
 import EditProfileModal from '../../components/profile/EditProfileModal';
+import VerifyEmailModal from '../../components/auth/VerifyEmailModal.jsx';
 
 function StudentHome() {
   const [userData, setUserData] = useState(null);
@@ -15,6 +16,18 @@ function StudentHome() {
   const [editForm, setEditForm] = useState({ email: '', phoneNumber: '' });
   const [submitting, setSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
+  const [emailModal, setEmailModal] = useState(false);
+
+  useEffect(() => {
+    if (!userData) return;
+    const verified = !!userData.googleId;
+    const shown = sessionStorage.getItem('email_modal_shown');
+    if (!verified && !shown) {
+      setEmailModal(true);
+      sessionStorage.setItem('email_modal_shown', '1');
+    }
+  }, [userData]);
+
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -97,6 +110,7 @@ function StudentHome() {
         infoFields={infoFields}
         onEdit={openEdit}
         onChangePassword={() => navigate('/changePassword')}
+        onVerifyDone={fetchData}
       />
 
       {editModal && (
@@ -108,6 +122,15 @@ function StudentHome() {
           onClose={() => setEditModal(false)}
           submitting={submitting}
           error={editError}
+        />
+      )}
+
+      {emailModal && (
+        <VerifyEmailModal
+          role={userData.role}
+          email={userData.email}
+          onClose={() => setEmailModal(false)}
+          onDone={fetchData}
         />
       )}
     </div>

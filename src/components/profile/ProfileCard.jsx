@@ -1,15 +1,25 @@
 import React from 'react';
 import { FiUser, FiEdit2 } from 'react-icons/fi';
+import VerifyEmailButton from '../auth/VerifyEmailButton.jsx';
 
-function ProfileCard({ userData, initials, infoFields, onEdit, onChangePassword }) {
+function ProfileCard({ userData, initials, infoFields, onEdit, onChangePassword, onVerifyDone }) {
   return (
     <div className="w-full max-w-2xl flex flex-col gap-4">
       <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
         <div className="p-8 flex flex-col sm:flex-row gap-8 items-center sm:items-start">
           <div className="flex flex-col items-center gap-3 shrink-0">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-              {initials || <FiUser size={36} />}
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-3xl font-bold shadow-lg overflow-hidden">
+              {userData.picture ? (
+                <img
+                  src={userData.picture}
+                  alt="profile"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                initials || <FiUser size={36} />
+              )}
             </div>
             <div className="text-center">
               <div className="font-semibold text-base">{userData.username}</div>
@@ -36,10 +46,19 @@ function ProfileCard({ userData, initials, infoFields, onEdit, onChangePassword 
         </div>
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+        {/* Подтверждение email — слева от остальных кнопок */}
+        <div className="sm:mr-auto">
+          <VerifyEmailButton
+            verified={!!userData.googleId}
+            role={userData.role}
+            email={userData.email}
+            onDone={onVerifyDone}
+          />
+        </div>
         <button
           onClick={onChangePassword}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-base-200 bg-base-100 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-base-200 bg-base-100 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -59,7 +78,7 @@ function ProfileCard({ userData, initials, infoFields, onEdit, onChangePassword 
         </button>
         <button
           onClick={onEdit}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
         >
           <FiEdit2 size={14} /> Profili Redaktə Et
         </button>
