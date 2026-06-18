@@ -10,6 +10,7 @@ import GroupSection from '../../components/students/GroupSection';
 import TabBtn from '../../components/ui/TabBtn';
 import SearchInput from '../../components/ui/SearchInput';
 import { useDebounce } from '../../scripts/useDebounce.js';
+import CreateStudentModal from '../../components/students/CreateStudentModal';
 
 const studentColors = [
   'from-[#8B5CF6] to-[#3B82F6]',
@@ -235,20 +236,11 @@ function Students() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: name === 'phoneNumber' ? formatPhone(value) : value }));
   };
-
-  const handleAddStudent = async () => {
-    const required = ['name', 'surname', 'fatherName', 'username', 'password', 'phoneNumber', 'email'];
-    const missing = required.filter((f) => !formData[f].trim());
-    if (missing.length) {
-      setModalError(`Zəhmət olmasa doldurun: ${missing.join(', ')}`);
-      return;
-    }
+  const handleAddStudent = async (payload) => {
     try {
       setSubmitting(true);
-      await api.post('/admin/createStudent', { ...formData, phoneNumber: phoneToRaw(formData.phoneNumber) });
+      await api.post('/admin/createStudent', payload);
       setIsModalOpen(false);
-      setFormData({ name: '', surname: '', fatherName: '', username: '', password: '', phoneNumber: '', email: '' });
-      setShowPassword(false);
       setModalError('');
       fetchFreeStudents(freePage);
     } catch (err) {
@@ -294,7 +286,6 @@ function Students() {
           <button
             onClick={() => {
               setIsModalOpen(true);
-              setShowPassword(false);
               setModalError('');
             }}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 shrink-0"
@@ -485,95 +476,15 @@ function Students() {
 
       {/* Create modal */}
       {isModalOpen && (
-        <div className="modal modal-open z-40" role="dialog">
-          <div className="modal-box rounded-2xl border border-base-200 shadow-xl flex flex-col gap-5 p-8 max-w-lg">
-            <div className="flex flex-col items-center gap-1 text-center">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md mb-1">
-                <FiUser size={18} />
-              </div>
-              <h3 className="text-lg font-bold">Yeni şagird</h3>
-              <p className="text-xs opacity-40">Məlumatları doldurun</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 w-full">
-              {textFields.map(({ name, label, placeholder }) => (
-                <div key={name} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium opacity-50 ml-1">{label}</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30">
-                      {name === 'email' ? <FiMail size={14} /> : <FiUser size={14} />}
-                    </span>
-                    <input
-                      type={name === 'email' ? 'email' : 'text'}
-                      name={name}
-                      value={formData[name]}
-                      onChange={handleInputChange}
-                      placeholder={placeholder}
-                      className="input w-full pl-8 pr-3 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                    />
-                  </div>
-                </div>
-              ))}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium opacity-50 ml-1">Şifrə</label>
-                <div className="relative">
-                  <FiLock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="••••••••"
-                    className="input w-full pl-8 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 opacity-30 hover:opacity-70 transition-opacity"
-                  >
-                    {showPassword ? <FiEyeOff size={14} /> : <FiEye size={14} />}
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1 col-span-2">
-                <label className="text-xs font-medium opacity-50 ml-1">Telefon</label>
-                <div className="relative">
-                  <FiPhone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    value={formData.phoneNumber || '+994 '}
-                    onChange={handleInputChange}
-                    onFocus={() => {
-                      if (!formData.phoneNumber) setFormData((prev) => ({ ...prev, phoneNumber: '+994 ' }));
-                    }}
-                    placeholder="+994 xx xxx xx xx"
-                    className="input w-full pl-8 pr-3 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-            {modalError && <span className="text-red-400 text-xs text-center">{modalError}</span>}
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={handleAddStudent}
-                disabled={submitting}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-60"
-              >
-                {submitting ? <span className="loading loading-spinner loading-xs" /> : 'Əlavə et'}
-              </button>
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setModalError('');
-                  setShowPassword(false);
-                }}
-                className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
-              >
-                Ləğv et
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateStudentModal
+          onClose={() => {
+            setIsModalOpen(false);
+            setModalError('');
+          }}
+          onSubmit={handleAddStudent}
+          submitting={submitting}
+          error={modalError}
+        />
       )}
     </div>
   );
