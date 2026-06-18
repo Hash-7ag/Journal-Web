@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../scripts/api.js';
-import { FiPlus, FiUser, FiMail, FiPhone, FiLock, FiUsers, FiX, FiEye, FiEyeOff } from 'react-icons/fi';
-import { formatPhone, phoneToRaw } from '../../scripts/usePhoneInput.js';
+import { FiPlus, FiUser, FiMail, FiPhone, FiUsers } from 'react-icons/fi';
 
 import Pagination from '../../components/ui/Pagination';
-import ResetPasswordBlock from '../../components/ui/ResetPasswordBlock';
 import StudentInfoModal from '../../components/group/StudentInfoModal';
 import GroupSection from '../../components/students/GroupSection';
 import TabBtn from '../../components/ui/TabBtn';
 import SearchInput from '../../components/ui/SearchInput';
 import { useDebounce } from '../../scripts/useDebounce.js';
 import CreateStudentModal from '../../components/students/CreateStudentModal';
+import EditStudentModal from '../../components/students/EditStudentModal';
 
 const studentColors = [
   'from-[#8B5CF6] to-[#3B82F6]',
@@ -116,30 +115,24 @@ function Students() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [error, setError] = useState('');
   const [infoModal, setInfoModal] = useState(null);
+
+  // edit
   const [editModal, setEditModal] = useState(null);
-  const [editForm, setEditForm] = useState({});
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
+
+  // create
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    surname: '',
-    fatherName: '',
-    username: '',
-    password: '',
-    phoneNumber: '',
-    email: '',
-  });
   const [submitting, setSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [modalError, setModalError] = useState('');
+
   const pageSize = 10;
 
+  // search
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const debouncedSearch = useDebounce(search, 350);
-
   const isSearching = debouncedSearch.trim().length > 0;
 
   useEffect(() => {
@@ -155,7 +148,7 @@ function Students() {
         setSearchLoading(true);
         const res = await api.post('/admin/searchStudent', { searchText: text });
         if (!cancelled) setSearchResults(res.data ?? []);
-      } catch (err) {
+      } catch {
         if (!cancelled) setSearchResults([]);
       } finally {
         if (!cancelled) setSearchLoading(false);
@@ -166,33 +159,6 @@ function Students() {
       cancelled = true;
     };
   }, [debouncedSearch]);
-
-  const openEditStudent = (student) => {
-    setEditForm({
-      name: student.name ?? '',
-      surname: student.surname ?? '',
-      fatherName: student.fatherName ?? '',
-      username: student.username ?? '',
-      email: student.email ?? '',
-      phone: student.phoneNumber?.replace('+994', '') ?? '',
-    });
-    setEditError('');
-    setEditModal(student);
-  };
-
-  const handleEditStudent = async () => {
-    try {
-      setEditSubmitting(true);
-      setEditError('');
-      await api.patch(`/admin/updateStudentInfo/${editModal._id}`, editForm);
-      fetchFreeStudents(freePage);
-      setEditModal(null);
-    } catch (err) {
-      setEditError(err.response?.data?.message || 'Xəta baş verdi');
-    } finally {
-      setEditSubmitting(false);
-    }
-  };
 
   const fetchFreeStudents = async (p = 1) => {
     try {
@@ -232,16 +198,12 @@ function Students() {
     fetchGroups();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: name === 'phoneNumber' ? formatPhone(value) : value }));
-  };
   const handleAddStudent = async (payload) => {
     try {
       setSubmitting(true);
+      setModalError('');
       await api.post('/admin/createStudent', payload);
       setIsModalOpen(false);
-      setModalError('');
       fetchFreeStudents(freePage);
     } catch (err) {
       setModalError(err.response?.data?.message || 'Xəta baş verdi');
@@ -250,13 +212,20 @@ function Students() {
     }
   };
 
-  const textFields = [
-    { name: 'name', label: 'Ad', placeholder: 'Məs: Əli' },
-    { name: 'surname', label: 'Soyad', placeholder: 'Məs: Məmmədov' },
-    { name: 'fatherName', label: 'Ata adı', placeholder: 'Məs: Hüseyn' },
-    { name: 'username', label: 'İstifadəçi adı', placeholder: 'username' },
-    { name: 'email', label: 'Email', placeholder: 'email@mail.com' },
-  ];
+  const handleEditStudent = async (payload) => {
+    try {
+      setEditSubmitting(true);
+      setEditError('');
+      await api.patch(`/admin/updateStudentInfo/${editModal._id}`, payload);
+      await fetchFreeStudents(freePage);
+      await fetchGroups();
+      setEditModal(null);
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Xəta baş verdi');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   if (freeLoading && freeStudents.length === 0 && groupsLoading) {
     return (
@@ -304,6 +273,7 @@ function Students() {
           <span>{error}</span>
         </div>
       )}
+
       {/* Режим поиска */}
       {isSearching ? (
         searchResults.length === 0 && !searchLoading ? (
@@ -316,14 +286,13 @@ function Students() {
                 student={student}
                 globalIndex={index}
                 onInfo={setInfoModal}
-                onEdit={openEditStudent}
+                onEdit={setEditModal}
               />
             ))}
           </div>
         )
       ) : (
         <>
-          {/* Вкладки */}
           <div className="flex gap-2 mb-6">
             {[
               ...(freeTotal > 0 ? [{ key: 'free', label: 'Boş', icon: <FiUser size={14} />, count: freeTotal }] : []),
@@ -356,7 +325,7 @@ function Students() {
                       student={student}
                       globalIndex={(freePage - 1) * pageSize + index}
                       onInfo={setInfoModal}
-                      onEdit={openEditStudent}
+                      onEdit={setEditModal}
                     />
                   ))}
                 </div>
@@ -381,7 +350,7 @@ function Students() {
                       group={group}
                       index={index}
                       onInfo={setInfoModal}
-                      onEdit={openEditStudent}
+                      onEdit={setEditModal}
                     />
                   ))}
                 </div>
@@ -393,88 +362,16 @@ function Students() {
 
       <StudentInfoModal student={infoModal} onClose={() => setInfoModal(null)} />
 
-      {/* Edit modal */}
       {editModal && (
-        <div className="modal modal-open z-50" role="dialog">
-          <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-lg overflow-hidden">
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
-            <div className="p-6 flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white shadow-md">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="15"
-                      height="15"
-                      stroke="currentColor"
-                      fill="none"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold">Şagirdi Redaktə Et</h3>
-                    <p className="text-xs opacity-40">
-                      {editModal.name} {editModal.surname}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setEditModal(null)}
-                  className="w-8 h-8 rounded-xl border border-base-200 flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
-                >
-                  <FiX size={15} />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { name: 'name', label: 'Ad' },
-                  { name: 'surname', label: 'Soyad' },
-                  { name: 'fatherName', label: 'Ata adı' },
-                  { name: 'username', label: 'İstifadəçi adı' },
-                  { name: 'email', label: 'Email' },
-                  { name: 'phone', label: 'Telefon (son 9 rəqəm)' },
-                ].map(({ name, label }) => (
-                  <div key={name} className="flex flex-col gap-1">
-                    <label className="text-xs font-medium opacity-50 ml-1">{label}</label>
-                    <input
-                      type={name === 'email' ? 'email' : 'text'}
-                      value={editForm[name] ?? ''}
-                      onChange={(e) => setEditForm((p) => ({ ...p, [name]: e.target.value }))}
-                      className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-              {editError && <span className="text-red-400 text-xs text-center">{editError}</span>}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleEditStudent}
-                  disabled={editSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md hover:opacity-90 transition-all duration-200 disabled:opacity-60"
-                >
-                  {editSubmitting ? <span className="loading loading-spinner loading-xs" /> : 'Yadda saxla'}
-                </button>
-                <button
-                  onClick={() => setEditModal(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-base-200 bg-base-200/50 text-sm font-semibold hover:bg-base-200 transition-all duration-200"
-                >
-                  Ləğv et
-                </button>
-              </div>
-              <ResetPasswordBlock id={editModal?._id} role="student" />
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={() => setEditModal(null)} />
-        </div>
+        <EditStudentModal
+          student={editModal}
+          onClose={() => setEditModal(null)}
+          onSave={handleEditStudent}
+          submitting={editSubmitting}
+          error={editError}
+        />
       )}
 
-      {/* Create modal */}
       {isModalOpen && (
         <CreateStudentModal
           onClose={() => {

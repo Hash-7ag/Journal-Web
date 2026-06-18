@@ -24,13 +24,13 @@ function FormInput({ label, icon, error, rightSlot, className = '', onEnter, ...
           {...props}
           onKeyDown={handleKeyDown}
           className={`w-full ${icon ? 'pl-11' : 'pl-4'} ${rightSlot ? 'pr-11' : 'pr-4'} py-3 rounded-xl
-                  bg-base-100 border-2 border-base-200/80
+                  bg-base-100 border-2 border-base-content/15
                   shadow-[0_1px_2px_rgba(0,0,0,0.04)]
-                  focus:outline-none focus:border-[#8B5CF6] focus:shadow-[0_4px_16px_-4px_rgba(139,92,246,0.25)]
-                  hover:border-base-300
+                  focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 focus:shadow-[0_4px_16px_-4px_rgba(139,92,246,0.25)]
+                  hover:border-base-content/30
                   transition-all duration-200 text-sm font-medium
                   placeholder:font-normal placeholder:text-base-content/30
-                  ${error ? 'border-red-300 focus:border-red-400' : ''}
+                  ${error ? 'border-red-400/50 focus:border-red-400' : ''}
                   ${className}`}
         />
         {rightSlot && <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">{rightSlot}</div>}

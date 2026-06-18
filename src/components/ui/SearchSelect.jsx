@@ -43,7 +43,7 @@ function SearchSelect({
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-12 pr-11 py-3 rounded-2xl border-2 border-base-200/80 bg-base-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[#8B5CF6] focus:shadow-[0_4px_16px_-4px_rgba(139,92,246,0.25)] transition-all duration-200 text-sm font-medium placeholder:font-normal placeholder:opacity-40"
+          className="w-full pl-12 pr-11 py-3 rounded-2xl border-2 border-base-content/15 bg-base-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 hover:border-base-content/30 focus:shadow-[0_4px_16px_-4px_rgba(139,92,246,0.25)] transition-all duration-200 text-sm font-medium placeholder:font-normal placeholder:opacity-40"
         />
         <div className="absolute right-3 flex items-center z-10">
           {loading ? (
@@ -51,7 +51,7 @@ function SearchSelect({
           ) : search ? (
             <button
               onClick={() => onSearch('')}
-              className="w-7 h-7 rounded-lg flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+              className="w-7 h-7 rounded-lg flex items-center justify-center bg-base-200 text-base-content/50 hover:text-base-content hover:bg-base-300 transition-all duration-200"
             >
               <FiX size={16} />
             </button>

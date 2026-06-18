@@ -15,7 +15,7 @@ function SearchInput({ value, onChange, placeholder = 'Axtar...', loading }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="relative w-full pl-12 pr-12 py-3 rounded-2xl border-2 border-base-200 bg-base-100 shadow-sm focus:outline-none focus:border-[#8B5CF6] focus:shadow-md transition-all duration-200 text-sm font-medium placeholder:font-normal placeholder:opacity-40"
+          className="relative w-full pl-12 pr-12 py-3 rounded-2xl border-2 border-base-content/15 bg-base-100 hover:border-base-content/30 focus:bg-base-100 focus:border-[#8B5CF6] focus:shadow-[0_4px_16px_-4px_rgba(139,92,246,0.25)] transition-all duration-200 text-sm font-medium placeholder:font-normal placeholder:opacity-40"
         />
 
         {/* Справа: спиннер или очистка */}
@@ -25,7 +25,7 @@ function SearchInput({ value, onChange, placeholder = 'Axtar...', loading }) {
           ) : value ? (
             <button
               onClick={() => onChange('')}
-              className="w-7 h-7 rounded-lg flex items-center justify-center opacity-40 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+              className="w-7 h-7 rounded-lg flex items-center justify-center bg-base-200 text-base-content/50 hover:text-base-content hover:bg-base-300 transition-all duration-200"
             >
               <FiX size={16} />
             </button>
