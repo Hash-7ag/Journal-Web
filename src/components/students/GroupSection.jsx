@@ -27,7 +27,7 @@ function GroupSection({ group, index, onInfo, onEdit }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const colorClass = groupColors[index % groupColors.length];
 
   const fetchStudents = async (p = 1) => {

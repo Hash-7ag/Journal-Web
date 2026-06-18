@@ -8,6 +8,8 @@ import ResetPasswordBlock from '../../components/ui/ResetPasswordBlock';
 import StudentInfoModal from '../../components/group/StudentInfoModal';
 import GroupSection from '../../components/students/GroupSection';
 import TabBtn from '../../components/ui/TabBtn';
+import SearchInput from '../../components/ui/SearchInput';
+import { useDebounce } from '../../scripts/useDebounce.js';
 
 const studentColors = [
   'from-[#8B5CF6] to-[#3B82F6]',
@@ -28,8 +30,19 @@ function StudentRow({ student, globalIndex, onInfo, onEdit }) {
         <span className="relative z-10 text-white font-bold text-sm">{initials || '?'}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm truncate">
-          {student.name} {student.surname}
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-sm truncate">
+            {student.name} {student.surname}
+          </div>
+          {student.group ? (
+            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-sm">
+              <FiUsers size={9} /> Qrupda
+            </span>
+          ) : (
+            <span className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-md bg-base-200 opacity-50 border border-base-200">
+              Boş
+            </span>
+          )}
         </div>
         <div className="text-xs opacity-40 mt-0.5 truncate">{student.fatherName}</div>
       </div>
@@ -120,6 +133,38 @@ function Students() {
   const [showPassword, setShowPassword] = useState(false);
   const [modalError, setModalError] = useState('');
   const pageSize = 10;
+
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const debouncedSearch = useDebounce(search, 350);
+
+  const isSearching = debouncedSearch.trim().length > 0;
+
+  useEffect(() => {
+    const text = debouncedSearch.trim();
+    if (!text) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setSearchLoading(true);
+        const res = await api.post('/admin/searchStudent', { searchText: text });
+        if (!cancelled) setSearchResults(res.data ?? []);
+      } catch (err) {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearch]);
 
   const openEditStudent = (student) => {
     setEditForm({
@@ -231,25 +276,36 @@ function Students() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-lg font-bold">Şagirdlər</h1>
-          <p className="text-xs opacity-40 mt-0.5">
-            {activeTab === 'free'
-              ? `${freeTotal} boş şagird · Səhifə ${freePage} / ${freeTotalPages}`
-              : `${groups.length} qrup`}
-          </p>
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="shrink-0">
+            <h1 className="text-lg font-bold">Şagirdlər</h1>
+            <p className="text-xs opacity-40 mt-0.5">
+              {activeTab === 'free'
+                ? `${freeTotal} boş şagird · Səhifə ${freePage} / ${freeTotalPages}`
+                : `${groups.length} qrup`}
+            </p>
+          </div>
+
+          <div className="hidden sm:block flex-1 max-w-md">
+            <SearchInput value={search} onChange={setSearch} placeholder="Şagird axtar..." loading={searchLoading} />
+          </div>
+
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              setShowPassword(false);
+              setModalError('');
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 shrink-0"
+          >
+            <FiPlus size={16} /> <span className="hidden md:inline">Şagird əlavə et</span>
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setIsModalOpen(true);
-            setShowPassword(false);
-            setModalError('');
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
-        >
-          <FiPlus size={16} /> Şagird əlavə et
-        </button>
+
+        <div className="sm:hidden">
+          <SearchInput value={search} onChange={setSearch} placeholder="Şagird axtar..." loading={searchLoading} />
+        </div>
       </div>
 
       {error && (
@@ -257,68 +313,89 @@ function Students() {
           <span>{error}</span>
         </div>
       )}
-
-      <div className="flex gap-2 mb-6">
-        {[
-          ...(freeTotal > 0 ? [{ key: 'free', label: 'Boş', icon: <FiUser size={14} />, count: freeTotal }] : []),
-          { key: 'assigned', label: 'Qrupda', icon: <FiUsers size={14} />, count: groups.length },
-        ].map((tab) => (
-          <TabBtn
-            key={tab.key}
-            active={activeTab === tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            icon={tab.icon}
-            label={tab.label}
-            count={tab.count}
-          />
-        ))}
-      </div>
-
-      {activeTab === 'free' && (
+      {/* Режим поиска */}
+      {isSearching ? (
+        searchResults.length === 0 && !searchLoading ? (
+          <div className="text-center opacity-40 mt-20 text-sm">Axtarışa uyğun şagird tapılmadı</div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {searchResults.map((student, index) => (
+              <StudentRow
+                key={student._id}
+                student={student}
+                globalIndex={index}
+                onInfo={setInfoModal}
+                onEdit={openEditStudent}
+              />
+            ))}
+          </div>
+        )
+      ) : (
         <>
-          {freeLoading ? (
-            <div className="flex justify-center py-20">
-              <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
-            </div>
-          ) : freeStudents.length === 0 ? (
-            <div className="text-center opacity-40 mt-20 text-sm">Boş şagird tapılmadı</div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {freeStudents.map((student, index) => (
-                <StudentRow
-                  key={student._id}
-                  student={student}
-                  globalIndex={(freePage - 1) * pageSize + index}
-                  onInfo={setInfoModal}
-                  onEdit={openEditStudent}
-                />
-              ))}
-            </div>
+          {/* Вкладки */}
+          <div className="flex gap-2 mb-6">
+            {[
+              ...(freeTotal > 0 ? [{ key: 'free', label: 'Boş', icon: <FiUser size={14} />, count: freeTotal }] : []),
+              { key: 'assigned', label: 'Qrupda', icon: <FiUsers size={14} />, count: groups.length },
+            ].map((tab) => (
+              <TabBtn
+                key={tab.key}
+                active={activeTab === tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                icon={tab.icon}
+                label={tab.label}
+                count={tab.count}
+              />
+            ))}
+          </div>
+
+          {activeTab === 'free' && (
+            <>
+              {freeLoading ? (
+                <div className="flex justify-center py-20">
+                  <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
+                </div>
+              ) : freeStudents.length === 0 ? (
+                <div className="text-center opacity-40 mt-20 text-sm">Boş şagird tapılmadı</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {freeStudents.map((student, index) => (
+                    <StudentRow
+                      key={student._id}
+                      student={student}
+                      globalIndex={(freePage - 1) * pageSize + index}
+                      onInfo={setInfoModal}
+                      onEdit={openEditStudent}
+                    />
+                  ))}
+                </div>
+              )}
+              <Pagination page={freePage} totalPages={freeTotalPages} onChange={(p) => setFreePage(p)} />
+            </>
           )}
-          <Pagination page={freePage} totalPages={freeTotalPages} onChange={(p) => setFreePage(p)} />
-        </>
-      )}
 
-      {activeTab === 'assigned' && (
-        <>
-          {groupsLoading ? (
-            <div className="flex justify-center py-20">
-              <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
-            </div>
-          ) : groups.length === 0 ? (
-            <div className="text-center opacity-40 mt-20 text-sm">Heç bir qrup tapılmadı</div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {groups.map((group, index) => (
-                <GroupSection
-                  key={group._id}
-                  group={group}
-                  index={index}
-                  onInfo={setInfoModal}
-                  onEdit={openEditStudent}
-                />
-              ))}
-            </div>
+          {activeTab === 'assigned' && (
+            <>
+              {groupsLoading ? (
+                <div className="flex justify-center py-20">
+                  <span className="loading loading-spinner loading-lg" style={{ color: '#8B5CF6' }} />
+                </div>
+              ) : groups.length === 0 ? (
+                <div className="text-center opacity-40 mt-20 text-sm">Heç bir qrup tapılmadı</div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {groups.map((group, index) => (
+                    <GroupSection
+                      key={group._id}
+                      group={group}
+                      index={index}
+                      onInfo={setInfoModal}
+                      onEdit={openEditStudent}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
