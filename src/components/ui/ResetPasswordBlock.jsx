@@ -14,7 +14,6 @@ function ResetPasswordBlock({ id, role }) {
       setError('');
       setNewPassword('');
       setCopied(false);
-      setConfirm(false);
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
       let pwd = '';
       for (let i = 0; i < 10; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
@@ -26,6 +25,7 @@ function ResetPasswordBlock({ id, role }) {
       const endpoint = endpoints[role] ?? endpoints.student;
       await api.patch(endpoint, { password: pwd });
       setNewPassword(pwd);
+      setConfirm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Xəta baş verdi');
     } finally {
