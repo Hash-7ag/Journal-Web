@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FiUsers, FiBook, FiGrid, FiUser, FiHome, FiAward, FiLogOut } from 'react-icons/fi';
+import { FiUsers, FiBook, FiGrid, FiUser, FiHome, FiAward, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
 import { getUserStoreData, clearUserStoreData } from '../store/userStore.js';
 import { capitalize } from '../scripts/capitalize.js';
 import api from '../scripts/api.js';
@@ -14,14 +14,20 @@ function Header() {
   const [logoutError, setLogoutError] = useState('');
   const [logoHovered, setLogoHovered] = useState(false);
   const [profileInitials, setProfileInitials] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [logoutModal, setLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -121,6 +127,7 @@ function Header() {
     <>
       <header className="w-full sticky top-0 z-50 bg-base-100/80 backdrop-blur border-b border-base-200 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+
           {/* Logo */}
           <Link
             to="/"
@@ -129,7 +136,6 @@ function Header() {
             onMouseLeave={() => setLogoHovered(false)}
           >
             <div className="relative flex items-center">
-              {/* Иконка — сдвигается вправо при hover */}
               <div
                 className="relative w-8 h-8 shrink-0 transition-transform duration-300 ease-in-out hidden [@media(hover:hover)]:block"
                 style={{ transform: logoHovered ? 'translateX(4px)' : 'translateX(0px)' }}
@@ -137,13 +143,10 @@ function Header() {
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
                 <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">EC</div>
               </div>
-              {/* Иконка без анимации для тач-устройств */}
               <div className="relative w-8 h-8 shrink-0 [@media(hover:hover)]:hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] rounded-lg shadow-md rotate-45" />
                 <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">EC</div>
               </div>
-
-              {/* Текст — вылезает из-за иконки, абсолютно позиционирован */}
               <div
                 className="absolute left-8 hidden [@media(hover:hover)]:block overflow-hidden transition-all duration-300 ease-in-out"
                 style={{
@@ -156,9 +159,9 @@ function Header() {
             </div>
           </Link>
 
-          {/* Nav */}
+          {/* Nav — desktop only */}
           {!isHidden && (
-            <nav className="flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1">
               {navLinks.map(({ to, label, icon }) => (
                 <Link
                   key={to}
@@ -171,7 +174,7 @@ function Header() {
                               }`}
                 >
                   {icon}
-                  <span className="hidden md:block">{label}</span>
+                  {label}
                 </Link>
               ))}
             </nav>
@@ -192,31 +195,86 @@ function Header() {
 
             {!isHidden && (
               <>
-                {/* Avatar */}
-                <Link to={homeLink}>
+                {/* Avatar — desktop */}
+                <Link to={homeLink} className="hidden md:flex">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer hover:shadow-lg transition-shadow">
                     {profileInitials || role?.charAt(0).toUpperCase()}
                   </div>
                 </Link>
 
-                {/* Logout button */}
+                {/* Logout — desktop */}
                 <button
                   onClick={() => setLogoutModal(true)}
-                  className="w-8 h-8 rounded-full border border-base-400 flex items-center justify-center opacity-50 hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-400 dark:hover:bg-red-900/20 transition-all duration-200"
+                  className="hidden md:flex w-8 h-8 rounded-full border border-base-400 items-center justify-center opacity-50 hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-400 dark:hover:bg-red-900/20 transition-all duration-200"
                 >
                   <FiLogOut size={14} />
+                </button>
+
+                {/* Burger — mobile */}
+                <button
+                  onClick={() => setMenuOpen((p) => !p)}
+                  className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg border border-base-200 opacity-60 hover:opacity-100 hover:bg-base-200 transition-all duration-200"
+                  aria-label="Menyu"
+                >
+                  {menuOpen ? <FiX size={18} /> : <FiMenu size={18} />}
                 </button>
               </>
             )}
           </div>
         </div>
+
+        {/* Mobile dropdown */}
+        {!isHidden && menuOpen && (
+          <div className="md:hidden border-t border-base-200 bg-base-100/98 backdrop-blur">
+            <nav className="container mx-auto px-4 py-3 flex flex-col gap-1">
+              {navLinks.map(({ to, label, icon }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    isActive(to)
+                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white shadow-md'
+                      : 'opacity-60 hover:opacity-100 hover:bg-base-200'
+                  }`}
+                >
+                  {icon}
+                  {label}
+                </Link>
+              ))}
+
+              {/* Divider + profile/logout row */}
+              <div className="mt-1 pt-3 border-t border-base-200 flex items-center justify-between px-1">
+                <Link
+                  to={homeLink}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                    {profileInitials || role?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium">{profileInitials || role}</span>
+                </Link>
+
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLogoutModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-800 text-red-400 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
+                >
+                  <FiLogOut size={13} /> Çıx
+                </button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Logout confirm modal */}
       {logoutModal && (
         <div className="modal modal-open z-50" role="dialog">
           <div className="modal-box rounded-2xl border border-base-200 shadow-xl flex flex-col gap-5 p-8 max-w-sm">
-            {/* Icon */}
             <div className="flex flex-col items-center gap-2 text-center">
               <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 flex items-center justify-center text-red-400 mb-1">
                 <FiLogOut size={22} />
@@ -227,7 +285,6 @@ function Header() {
               </p>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3">
               <button
                 onClick={handleLogout}
@@ -253,7 +310,6 @@ function Header() {
               </button>
             </div>
 
-            {/* Server error + force logout */}
             {logoutError && (
               <div className="flex flex-col gap-2">
                 <div role="alert" className="alert alert-error rounded-xl text-xs py-2">
@@ -273,7 +329,6 @@ function Header() {
               </div>
             )}
           </div>
-          {/* backdrop */}
           <div className="modal-backdrop" onClick={() => setLogoutModal(false)} />
         </div>
       )}
