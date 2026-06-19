@@ -64,7 +64,7 @@ function AttendanceTable({
           onClick={onOpenCalendar}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
         >
-          <FiPlus size={15} /> {actionLabel ?? 'Davamiyyət əlavə et'}
+          <FiPlus size={15} /> <span className="hidden sm:inline">{actionLabel ?? 'Davamiyyət əlavə et'}</span>
         </button>
       </div>
 

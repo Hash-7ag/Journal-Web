@@ -515,7 +515,7 @@ function TeacherGroupDetail() {
   const columns = buildColumns();
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm opacity-50 hover:opacity-100 mb-6 transition-opacity duration-200"
@@ -528,7 +528,7 @@ function TeacherGroupDetail() {
         <p className="text-xs opacity-40 mt-0.5">{students.length} şagird</p>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <TabBtn
           active={activeTab === 'grades'}
           onClick={() => setActiveTab('grades')}
@@ -682,7 +682,7 @@ function TeacherGroupDetail() {
               onClick={openWizard}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
             >
-              <FiPlus size={15} /> Davamiyyət əlavə et
+              <FiPlus size={15} /> <span className="hidden sm:inline">Davamiyyət əlavə et</span>
             </button>
           </div>
 

@@ -257,7 +257,7 @@ function GroupDetail() {
     setSelectedSubjects((prev) => (prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]));
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm opacity-50 hover:opacity-100 mb-6 transition-opacity duration-200"

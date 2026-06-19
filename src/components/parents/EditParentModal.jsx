@@ -27,7 +27,7 @@ function EditParentModal({ parent, onClose, onSave, submitting, error }) {
 
   return (
     <div className="modal modal-open z-50" role="dialog">
-      <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-md overflow-hidden">
+      <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-md overflow-hidden max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] mx-auto">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
         <div className="p-7 flex flex-col gap-6">
           <div className="flex items-center justify-between">
@@ -50,7 +50,7 @@ function EditParentModal({ parent, onClose, onSave, submitting, error }) {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormInput
               label="Ad"
               icon={<FiUser size={15} />}

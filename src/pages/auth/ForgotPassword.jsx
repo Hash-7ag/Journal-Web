@@ -118,6 +118,7 @@ function ForgotPassword() {
                         setEmail(e.target.value);
                         setError('');
                       }}
+                      onKeyDown={(e) => e.key === 'Enter' && !loading && sendCode()}
                       type="email"
                       placeholder="email@example.com"
                       className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
@@ -156,6 +157,7 @@ function ForgotPassword() {
                       setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
                       setError('');
                     }}
+                    onKeyDown={(e) => e.key === 'Enter' && !loading && verifyCode()}
                     type="text"
                     inputMode="numeric"
                     placeholder="000000"

@@ -110,6 +110,7 @@ function Login() {
                     name="username"
                     value={formValues.username}
                     onChange={(e) => changeValues(e)}
+                    onKeyDown={(e) => e.key === 'Enter' && !loading && login()}
                     type="text"
                     placeholder="Username"
                     className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"
@@ -126,6 +127,7 @@ function Login() {
                     name="password"
                     value={formValues.password}
                     onChange={(e) => changeValues(e)}
+                    onKeyDown={(e) => e.key === 'Enter' && !loading && login()}
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     className="input w-full pl-9 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] focus:bg-base-100 transition-all duration-200 text-sm"

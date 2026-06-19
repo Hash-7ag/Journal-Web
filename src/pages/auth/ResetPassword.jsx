@@ -90,6 +90,7 @@ function ResetPassword() {
                       setPassword(e.target.value);
                       setError('');
                     }}
+                    onKeyDown={(e) => e.key === 'Enter' && !loading && submit()}
                     type={show ? 'text' : 'password'}
                     placeholder="••••••••"
                     className="input w-full pl-9 pr-9 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
@@ -114,6 +115,7 @@ function ResetPassword() {
                       setConfirm(e.target.value);
                       setError('');
                     }}
+                    onKeyDown={(e) => e.key === 'Enter' && !loading && submit()}
                     type={show ? 'text' : 'password'}
                     placeholder="••••••••"
                     className="input w-full pl-9 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-200/50 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"

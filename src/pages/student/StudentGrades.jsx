@@ -127,7 +127,7 @@ function StudentGrades() {
   const selIndex = selectedItem ? subjects.findIndex((s) => s.subject._id === selectedItem.subject._id) : 0;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6">
         <h1 className="text-lg font-bold">Qiymətlərim</h1>
         <p className="text-xs opacity-40 mt-0.5">

@@ -22,7 +22,7 @@ function GroupCard({ group, index, onClick, onEdit }) {
           e.stopPropagation();
           onEdit(e, group);
         }}
-        className="absolute top-3 right-3 w-7 h-7 rounded-lg border border-base-200 flex items-center justify-center opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:bg-base-200 transition-all duration-200"
+        className="absolute top-3 right-3 w-7 h-7 rounded-lg border border-base-200 flex items-center justify-center opacity-30 sm:opacity-0 group-hover:opacity-40 hover:!opacity-100 hover:bg-base-200 transition-all duration-200"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

@@ -156,7 +156,7 @@ function CreateParentModal({ onClose, onSubmit, submitting, error }) {
 
   return (
     <div className="modal modal-open z-40" role="dialog">
-      <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-md overflow-hidden">
+      <div className="modal-box rounded-2xl border border-base-200 shadow-xl p-0 max-w-md overflow-hidden max-h-[90vh] w-[calc(100%-2rem)] mx-auto">
         <div className="h-1.5 w-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6]" />
         <div className="p-7 flex flex-col gap-6">
           {/* Header */}

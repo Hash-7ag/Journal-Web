@@ -59,7 +59,7 @@ function TeacherGroups() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-lg font-bold">Mənim Qruplarım</h1>

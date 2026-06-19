@@ -155,23 +155,25 @@ function Parents() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] px-6 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-lg font-bold">Valideynlər</h1>
-          <p className="text-xs opacity-40 mt-0.5">
-            {total} valideyn · Səhifə {page} / {totalPages}
-          </p>
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-6 sm:px-6 sm:py-8">
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="shrink-0">
+            <h1 className="text-lg font-bold">Valideynlər</h1>
+            <p className="text-xs opacity-40 mt-0.5">
+              {total} valideyn · Səhifə {page} / {totalPages}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              setModalError('');
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200 shrink-0"
+          >
+            <FiPlus size={16} /> <span className="hidden md:inline">Valideyn əlavə et</span>
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setIsModalOpen(true);
-            setModalError('');
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-sm font-semibold shadow-md hover:shadow-lg hover:opacity-90 transition-all duration-200"
-        >
-          <FiPlus size={16} /> Valideyn əlavə et
-        </button>
       </div>
 
       {error && (
