@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
-import { FiBook, FiUser, FiEdit2, FiX, FiCheck, FiSearch } from 'react-icons/fi';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FiBook, FiUser, FiEdit2, FiX, FiCheck, FiMail } from 'react-icons/fi';
 import api from '../../scripts/api.js';
+import FormInput from '../ui/FormInput';
+import SearchSelect from '../ui/SearchSelect';
+import SemestrPicker from '../group/SemestrPicker';
+import { useDebounce } from '../../scripts/useDebounce.js';
 
-function SubjectModal({ subject, teachers, onClose, onUpdated }) {
+const PAGE_SIZE = 10;
+
+function SubjectModal({ subject, onClose, onUpdated }) {
   const [editMode, setEditMode] = useState(false);
   const [teacherMode, setTeacherMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,13 +20,54 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
   const [submitting, setSubmitting] = useState(false);
   const [switchingTeacher, setSwitchingTeacher] = useState(false);
   const [error, setError] = useState('');
-  const [teacherSearch, setTeacherSearch] = useState('');
 
-  const currentTeacher = teachers.find((t) => t._id === subject.teacherId?._id || t._id === subject.teacherId);
-  const availableTeachers = teachers.filter((t) => t._id !== (subject.teacherId?._id ?? subject.teacherId));
-  const filteredTeachers = availableTeachers.filter((t) =>
-    `${t.name} ${t.surname}`.toLowerCase().includes(teacherSearch.toLowerCase()),
-  );
+  const currentTeacher = subject.teacherId; // populated объект (или id)
+
+  // серч учителей
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const loadTeachers = useCallback(async (pageNum, text, append) => {
+    try {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      let data = [];
+      if (text) {
+        const res = await api.post('/admin/searchTeacher', { searchText: text });
+        data = res.data ?? [];
+        setHasMore(false);
+      } else {
+        const res = await api.get(`/admin/getAllTeachers?page=${pageNum}&pageSize=${PAGE_SIZE}`);
+        data = res.data.data ?? [];
+        setHasMore(pageNum < (res.data.totalPages ?? 1));
+      }
+      setResults((prev) => (append ? [...prev, ...data] : data));
+    } catch {
+      if (!append) setResults([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!teacherMode) return;
+    setPage(1);
+    loadTeachers(1, debouncedSearch.trim(), false);
+  }, [debouncedSearch, teacherMode, loadTeachers]);
+
+  const loadMore = () => {
+    if (loadingMore || !hasMore || debouncedSearch.trim()) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadTeachers(nextPage, '', true);
+  };
 
   const handleUpdate = async () => {
     try {
@@ -95,7 +142,7 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
                   <FiEdit2 size={11} /> Müəllimi Dəyiş
                 </button>
               </div>
-              {currentTeacher ? (
+              {currentTeacher && typeof currentTeacher === 'object' ? (
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
                     {currentTeacher.name?.charAt(0)}
@@ -109,7 +156,7 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm opacity-30">Müəllim tapılmadı</div>
+                <div className="text-sm opacity-30">Müəllim təyin edilməyib</div>
               )}
             </div>
           ) : (
@@ -117,32 +164,38 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold opacity-40">Yeni müəllim seçin</span>
                 <button
-                  onClick={() => setTeacherMode(false)}
+                  onClick={() => {
+                    setTeacherMode(false);
+                    setSearch('');
+                  }}
                   className="text-xs opacity-40 hover:opacity-100 transition-opacity"
                 >
                   <FiX size={14} />
                 </button>
               </div>
-              <div className="relative">
-                <FiSearch size={13} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
-                <input
-                  type="text"
-                  value={teacherSearch}
-                  onChange={(e) => setTeacherSearch(e.target.value)}
-                  placeholder="Müəllim axtar..."
-                  className="input w-full pl-8 pr-4 py-2 rounded-xl border border-base-200 bg-base-100 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-                {filteredTeachers.length === 0 ? (
-                  <div className="text-center opacity-30 py-4 text-sm">Heç nə tapılmadı</div>
-                ) : (
-                  filteredTeachers.map((t) => (
+              <SearchSelect
+                search={search}
+                onSearch={setSearch}
+                loading={loading}
+                placeholder="Müəllim axtar..."
+                loadingMore={loadingMore}
+                hasMore={hasMore && !debouncedSearch.trim()}
+                onLoadMore={loadMore}
+                isEmpty={!loading && results.length === 0}
+                emptyText="Müəllim tapılmadı"
+              >
+                {results.map((t) => {
+                  const isCurrent = (currentTeacher?._id ?? currentTeacher) === t._id;
+                  return (
                     <button
                       key={t._id}
                       onClick={() => handleSwitchTeacher(t._id)}
                       disabled={!!switchingTeacher}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-base-200 hover:border-[#8B5CF6]/40 hover:bg-gradient-to-r hover:from-[#8B5CF6]/10 hover:to-[#3B82F6]/10 text-left transition-all duration-200 disabled:opacity-50"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all duration-200 disabled:opacity-50 ${
+                        isCurrent
+                          ? 'border-[#8B5CF6] bg-gradient-to-r from-[#8B5CF6]/10 to-[#3B82F6]/10'
+                          : 'border-base-200 hover:border-base-content/20 hover:bg-base-200/40'
+                      }`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">
                         {t.name?.charAt(0)}
@@ -154,13 +207,18 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
                         </div>
                         <div className="text-xs opacity-40 truncate">{t.fatherName}</div>
                       </div>
+                      {isCurrent && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#8B5CF6] text-white shrink-0">
+                          Cari
+                        </span>
+                      )}
                       {switchingTeacher === t._id && (
                         <span className="loading loading-spinner loading-xs" style={{ color: '#8B5CF6' }} />
                       )}
                     </button>
-                  ))
-                )}
-              </div>
+                  );
+                })}
+              </SearchSelect>
             </div>
           )}
 
@@ -201,32 +259,33 @@ function SubjectModal({ subject, teachers, onClose, onUpdated }) {
                   <FiX size={14} />
                 </button>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs opacity-50 ml-1">Fənn adı</label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
-                  className="input w-full pl-4 pr-4 py-2.5 rounded-xl border border-base-200 bg-base-100 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                />
+              <FormInput
+                label="Fənn adı"
+                value={formData.subject}
+                onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
+                onEnter={handleUpdate}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold opacity-60 ml-1">Semestr</label>
+                <SemestrPicker value={formData.semestr} onChange={(s) => setFormData((p) => ({ ...p, semestr: s }))} />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { name: 'semestr', label: 'Semestr' },
-                  { name: 'kredit', label: 'Kredit' },
-                  { name: 'totalHours', label: 'Saat' },
-                ].map(({ name, label }) => (
-                  <div key={name} className="flex flex-col gap-1">
-                    <label className="text-xs opacity-50 ml-1">{label}</label>
-                    <input
-                      type="number"
-                      value={formData[name]}
-                      onChange={(e) => setFormData((p) => ({ ...p, [name]: e.target.value }))}
-                      className="input w-full pl-3 pr-2 py-2.5 rounded-xl border border-base-200 bg-base-100 focus:outline-none focus:border-[#8B5CF6] transition-all duration-200 text-sm"
-                      min={1}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 gap-2">
+                <FormInput
+                  label="Kredit"
+                  type="number"
+                  min={1}
+                  value={formData.kredit}
+                  onChange={(e) => setFormData((p) => ({ ...p, kredit: e.target.value }))}
+                  onEnter={handleUpdate}
+                />
+                <FormInput
+                  label="Saat"
+                  type="number"
+                  min={1}
+                  value={formData.totalHours}
+                  onChange={(e) => setFormData((p) => ({ ...p, totalHours: e.target.value }))}
+                  onEnter={handleUpdate}
+                />
               </div>
               {error && <span className="text-red-400 text-xs">{error}</span>}
               <div className="flex gap-2">
